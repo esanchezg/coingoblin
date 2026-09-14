@@ -1,0 +1,97 @@
+import { auth } from "@clerk/nextjs/server";
+import { markPaid } from "@/lib/actions/parent";
+import { formatCents } from "@/lib/money";
+import { getKidsWithBalances, getPayoutHistory } from "@/lib/queries";
+
+export default async function PayoutsPage() {
+  const { userId } = await auth();
+  if (!userId) return null;
+
+  const [kidsWithBalances, history] = await Promise.all([
+    getKidsWithBalances(userId),
+    getPayoutHistory(userId),
+  ]);
+
+  return (
+    <div className="flex flex-col gap-6">
+      <section>
+        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
+          Balances &amp; payouts
+        </h2>
+        {kidsWithBalances.length === 0 ? (
+          <p className="rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-500">
+            No kids yet.
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-3">
+            {kidsWithBalances.map((kid) => (
+              <li key={kid.id} className="rounded-2xl border border-slate-200 bg-white p-4">
+                <div className="mb-3 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span
+                      className="h-3 w-3 rounded-full"
+                      style={{ backgroundColor: kid.color }}
+                    />
+                    <span className="font-medium">{kid.name}</span>
+                  </div>
+                  <span className="font-semibold text-emerald-600">
+                    {formatCents(kid.balanceCents)} owed
+                  </span>
+                </div>
+                <form action={markPaid} className="flex gap-2">
+                  <input type="hidden" name="kidId" value={kid.id} />
+                  <input
+                    name="amount"
+                    type="number"
+                    step="0.25"
+                    min="0.25"
+                    placeholder="Amount"
+                    required
+                    className="w-24 rounded-xl border border-slate-300 px-3 py-2 text-sm"
+                  />
+                  <input
+                    name="note"
+                    placeholder="Note (optional)"
+                    className="flex-1 rounded-xl border border-slate-300 px-3 py-2 text-sm"
+                  />
+                  <button
+                    type="submit"
+                    className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white"
+                  >
+                    Mark paid
+                  </button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section>
+        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
+          Payout history
+        </h2>
+        {history.length === 0 ? (
+          <p className="rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-500">
+            No payouts recorded yet.
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {history.map((p) => (
+              <li
+                key={p.id}
+                className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm"
+              >
+                <span>
+                  {p.kidName}
+                  {p.note ? ` · ${p.note}` : ""}
+                </span>
+                <span className="font-medium">{formatCents(p.amountCents)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </div>
+  );
+}
