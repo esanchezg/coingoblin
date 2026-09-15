@@ -20,6 +20,8 @@ export const kids = pgTable("kids", {
   name: text("name").notNull(),
   pinHash: text("pin_hash").notNull(),
   color: text("color").notNull().default("#6366f1"),
+  // Marks the lazily-created pseudo-earner row representing the parent — not a real login profile.
+  isParent: boolean("is_parent").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -36,6 +38,8 @@ export const chores = pgTable("chores", {
   // null = open to any kid in the household (first to complete claims it)
   assignedKidId: uuid("assigned_kid_id"),
   active: boolean("active").notNull().default(true),
+  // A bounty is a chore row with isBounty: true and recurrence forced to "once".
+  isBounty: boolean("is_bounty").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

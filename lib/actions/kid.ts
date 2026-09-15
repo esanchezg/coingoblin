@@ -1,7 +1,7 @@
 "use server";
 
 import bcrypt from "bcryptjs";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getDb } from "@/db";
@@ -29,7 +29,7 @@ export async function verifyKidPinAndLogin(kidId: string, parentUserId: string, 
     .from(kids)
     .where(and(eq(kids.id, kidId), eq(kids.parentUserId, parentUserId)))
     .limit(1);
-  if (!kid) return { ok: false as const, error: "Profile not found." };
+  if (!kid || kid.isParent) return { ok: false as const, error: "Profile not found." };
 
   const valid = await bcrypt.compare(pin, kid.pinHash);
   if (!valid) return { ok: false as const, error: "Wrong PIN, try again." };
@@ -59,11 +59,26 @@ export async function completeChore(choreId: string) {
   }
   if (!isScheduledToday(chore)) throw new Error("Not scheduled today");
 
-  await db.insert(completions).values({
-    choreId: chore.id,
-    kidId: session.kid.id,
-    occurrenceDate: occurrenceDateFor(chore),
-  });
+  await db
+    .insert(completions)
+    .values({
+      choreId: chore.id,
+      kidId: session.kid.id,
+      occurrenceDate: occurrenceDateFor(chore),
+    })
+    .onConflictDoUpdate({
+      target: [completions.choreId, completions.occurrenceDate],
+      // A conflict on a pending/approved row silently no-ops (double-tap or lost
+      // race with a sibling) instead of throwing. Only a previously rejected
+      // attempt gets overwritten with this fresh one.
+      setWhere: sql`${completions.status} = 'rejected'`,
+      set: {
+        kidId: session.kid.id,
+        status: "pending",
+        completedAt: new Date(),
+        reviewedAt: null,
+      },
+    });
 
   revalidatePath("/kid");
 }

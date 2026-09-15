@@ -1,23 +1,27 @@
 import { completeChore } from "@/lib/actions/kid";
 import { getKidSession } from "@/lib/kid-session";
 import { formatCents } from "@/lib/money";
+import { scheduleLabel } from "@/lib/chore-schedule";
 import {
+  getAvailableBountiesForKid,
   getAvailableChoresForKid,
   getKidCompletions,
-  getKidsWithBalances,
+  getEarnersWithBalances,
 } from "@/lib/queries";
 
 export default async function KidHome() {
   const session = await getKidSession();
   if (!session) return null;
 
-  const [available, myCompletions, leaderboard] = await Promise.all([
+  const [available, bounties, myCompletions, leaderboard] = await Promise.all([
     getAvailableChoresForKid(session.kid.id, session.parentUserId),
+    getAvailableBountiesForKid(session.kid.id, session.parentUserId),
     getKidCompletions(session.kid.id),
-    getKidsWithBalances(session.parentUserId),
+    getEarnersWithBalances(session.parentUserId),
   ]);
 
   const pending = myCompletions.filter((c) => c.status === "pending");
+  const completedBounties = myCompletions.filter((c) => c.isBounty && c.status === "approved");
   const myBalance = leaderboard.find((k) => k.id === session.kid.id)?.balanceCents ?? 0;
 
   return (
@@ -26,6 +30,40 @@ export default async function KidHome() {
         <p className="text-sm text-emerald-100">Your balance</p>
         <p className="mt-1 text-4xl font-bold">{formatCents(myBalance)}</p>
       </section>
+
+      {bounties.length > 0 && (
+        <section className="rounded-2xl border border-amber-300 bg-amber-50 p-4">
+          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-amber-800">
+            🎯 Bounties
+          </h2>
+          <ul className="flex flex-col gap-2">
+            {bounties.map((bounty) => (
+              <li
+                key={bounty.id}
+                className="flex items-center justify-between rounded-2xl border border-amber-200 bg-white p-4"
+              >
+                <div>
+                  <p className="font-medium">{bounty.title}</p>
+                  <p className="text-lg font-bold text-amber-700">{formatCents(bounty.valueCents)}</p>
+                </div>
+                <form
+                  action={async () => {
+                    "use server";
+                    await completeChore(bounty.id);
+                  }}
+                >
+                  <button
+                    type="submit"
+                    className="rounded-xl bg-amber-600 px-4 py-2 font-semibold text-white"
+                  >
+                    Claim it!
+                  </button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section>
         <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
@@ -44,7 +82,12 @@ export default async function KidHome() {
               >
                 <div>
                   <p className="font-medium">{chore.title}</p>
-                  <p className="text-sm text-slate-500">{formatCents(chore.valueCents)}</p>
+                  <div className="mt-1 flex items-center gap-2">
+                    <p className="text-sm text-slate-500">{formatCents(chore.valueCents)}</p>
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">
+                      {scheduleLabel(chore)}
+                    </span>
+                  </div>
                 </div>
                 <form
                   action={async () => {
@@ -84,6 +127,25 @@ export default async function KidHome() {
         </section>
       )}
 
+      {completedBounties.length > 0 && (
+        <section>
+          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
+            Bounties you&apos;ve crushed
+          </h2>
+          <ul className="flex flex-col gap-2">
+            {completedBounties.map((c) => (
+              <li
+                key={c.id}
+                className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500"
+              >
+                <span>🎯 {c.choreTitle}</span>
+                <span className="font-medium text-slate-700">{formatCents(c.valueCents)}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <section>
         <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
           Family leaderboard
@@ -102,6 +164,11 @@ export default async function KidHome() {
                 <span className="text-slate-400">#{i + 1}</span>
                 <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: kid.color }} />
                 {kid.name}
+                {kid.isParent && (
+                  <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold uppercase text-slate-600">
+                    Parent
+                  </span>
+                )}
               </span>
               <span className="font-medium">{formatCents(kid.balanceCents)}</span>
             </li>

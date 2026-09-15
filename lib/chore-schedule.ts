@@ -31,3 +31,10 @@ export function parseDaysOfWeek(value: string | null): number[] {
 }
 
 export const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+export function scheduleLabel(chore: Pick<Chore, "recurrence" | "daysOfWeek">): string {
+  if (chore.recurrence === "daily") return "Every day";
+  if (chore.recurrence === "once") return "One-time";
+  const days = parseDaysOfWeek(chore.daysOfWeek).map((d) => DAY_LABELS[d]);
+  return days.length ? days.join(", ") : "Weekly";
+}

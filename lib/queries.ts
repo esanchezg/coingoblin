@@ -45,28 +45,47 @@ export async function getHouseholdByFamilyCode(familyCode: string) {
   return household ?? null;
 }
 
+// Real kid profiles only — excludes the parent pseudo-earner row.
 export async function getKidsForParent(parentUserId: string) {
   const db = getDb();
   return db
     .select()
     .from(kids)
+    .where(and(eq(kids.parentUserId, parentUserId), eq(kids.isParent, false)))
+    .orderBy(kids.createdAt);
+}
+
+// Every earner in the household, including the parent pseudo-row. Deliberately
+// excludes pinHash — this data reaches the kid-facing leaderboard.
+export async function getEarnersForParent(parentUserId: string) {
+  const db = getDb();
+  return db
+    .select({ id: kids.id, name: kids.name, color: kids.color, isParent: kids.isParent })
+    .from(kids)
     .where(eq(kids.parentUserId, parentUserId))
     .orderBy(kids.createdAt);
 }
 
-export async function getKidById(kidId: string) {
-  const db = getDb();
-  const [kid] = await db.select().from(kids).where(eq(kids.id, kidId)).limit(1);
-  return kid ?? null;
-}
-
+// Non-bounty chores only — this backs the recurring-chores list on the dashboard.
 export async function getChoresForParent(parentUserId: string) {
   const db = getDb();
   return db
     .select()
     .from(chores)
-    .where(eq(chores.parentUserId, parentUserId))
+    .where(and(eq(chores.parentUserId, parentUserId), eq(chores.isBounty, false)))
     .orderBy(desc(chores.createdAt));
+}
+
+export async function getBountiesForParent(parentUserId: string) {
+  const db = getDb();
+  const bountyRows = await db
+    .select()
+    .from(chores)
+    .where(and(eq(chores.parentUserId, parentUserId), eq(chores.isBounty, true)))
+    .orderBy(desc(chores.createdAt));
+
+  const claims = await getClaimsForChores(bountyRows);
+  return bountyRows.map((bounty) => ({ bounty, claim: claims.get(bounty.id) ?? null }));
 }
 
 async function balancesForKids(kidIds: string[]) {
@@ -100,17 +119,12 @@ async function balancesForKids(kidIds: string[]) {
   return balances;
 }
 
-export async function getKidsWithBalances(parentUserId: string) {
-  const kidRows = await getKidsForParent(parentUserId);
-  const balances = await balancesForKids(kidRows.map((k) => k.id));
-  return kidRows
-    .map((kid) => ({ ...kid, balanceCents: balances.get(kid.id) ?? 0 }))
+export async function getEarnersWithBalances(parentUserId: string) {
+  const earnerRows = await getEarnersForParent(parentUserId);
+  const balances = await balancesForKids(earnerRows.map((k) => k.id));
+  return earnerRows
+    .map((earner) => ({ ...earner, balanceCents: balances.get(earner.id) ?? 0 }))
     .sort((a, b) => b.balanceCents - a.balanceCents);
-}
-
-export async function getKidBalance(kidId: string) {
-  const balances = await balancesForKids([kidId]);
-  return balances.get(kidId) ?? 0;
 }
 
 export async function getPendingCompletions(parentUserId: string) {
@@ -121,6 +135,7 @@ export async function getPendingCompletions(parentUserId: string) {
       completedAt: completions.completedAt,
       choreTitle: chores.title,
       valueCents: chores.valueCents,
+      isBounty: chores.isBounty,
       kidName: kids.name,
       kidColor: kids.color,
     })
@@ -150,39 +165,93 @@ export async function getPayoutHistory(parentUserId: string) {
     .orderBy(desc(payouts.createdAt));
 }
 
-export async function getAvailableChoresForKid(kidId: string, parentUserId: string) {
+export type ChoreClaim = {
+  completionId: string;
+  earnerId: string;
+  earnerName: string;
+  earnerColor: string;
+  earnerIsParent: boolean;
+  status: "pending" | "approved";
+};
+
+// For each chore's CURRENT occurrence, who (if anyone) has a non-rejected completion.
+export async function getClaimsForChores(
+  choreRows: { id: string; recurrence: "once" | "daily" | "weekly" }[],
+): Promise<Map<string, ChoreClaim>> {
+  const map = new Map<string, ChoreClaim>();
+  if (choreRows.length === 0) return map;
+
   const db = getDb();
-  const allChores = await db
+  const rows = await db
+    .select({
+      choreId: completions.choreId,
+      occurrenceDate: completions.occurrenceDate,
+      status: completions.status,
+      completionId: completions.id,
+      earnerId: kids.id,
+      earnerName: kids.name,
+      earnerColor: kids.color,
+      earnerIsParent: kids.isParent,
+    })
+    .from(completions)
+    .innerJoin(kids, eq(completions.kidId, kids.id))
+    .where(
+      inArray(
+        completions.choreId,
+        choreRows.map((c) => c.id),
+      ),
+    );
+
+  const byOccurrence = new Map(
+    rows
+      .filter((r) => r.status !== "rejected")
+      .map((r) => [`${r.choreId}:${r.occurrenceDate}`, r] as const),
+  );
+
+  for (const chore of choreRows) {
+    const hit = byOccurrence.get(`${chore.id}:${occurrenceDateFor(chore)}`);
+    if (hit) {
+      map.set(chore.id, {
+        completionId: hit.completionId,
+        earnerId: hit.earnerId,
+        earnerName: hit.earnerName,
+        earnerColor: hit.earnerColor,
+        earnerIsParent: hit.earnerIsParent,
+        status: hit.status as "pending" | "approved",
+      });
+    }
+  }
+
+  return map;
+}
+
+async function availableForKid(kidId: string, parentUserId: string, isBounty: boolean) {
+  const db = getDb();
+  const candidates = await db
     .select()
     .from(chores)
     .where(
       and(
         eq(chores.parentUserId, parentUserId),
         eq(chores.active, true),
+        eq(chores.isBounty, isBounty),
         or(isNull(chores.assignedKidId), eq(chores.assignedKidId, kidId)),
       ),
     );
 
-  const todays = allChores.filter((chore) => isScheduledToday(chore));
-  if (todays.length === 0) return [];
+  const scheduled = candidates.filter((chore) => isScheduledToday(chore));
+  if (scheduled.length === 0) return [];
 
-  const takenRows = await db
-    .select({ choreId: completions.choreId, occurrenceDate: completions.occurrenceDate, status: completions.status })
-    .from(completions)
-    .where(
-      inArray(
-        completions.choreId,
-        todays.map((c) => c.id),
-      ),
-    );
+  const claims = await getClaimsForChores(scheduled);
+  return scheduled.filter((chore) => !claims.has(chore.id));
+}
 
-  const taken = new Set(
-    takenRows
-      .filter((r) => r.status !== "rejected")
-      .map((r) => `${r.choreId}:${r.occurrenceDate}`),
-  );
+export async function getAvailableChoresForKid(kidId: string, parentUserId: string) {
+  return availableForKid(kidId, parentUserId, false);
+}
 
-  return todays.filter((chore) => !taken.has(`${chore.id}:${occurrenceDateFor(chore)}`));
+export async function getAvailableBountiesForKid(kidId: string, parentUserId: string) {
+  return availableForKid(kidId, parentUserId, true);
 }
 
 export async function getKidCompletions(kidId: string) {
@@ -194,6 +263,7 @@ export async function getKidCompletions(kidId: string) {
       completedAt: completions.completedAt,
       choreTitle: chores.title,
       valueCents: chores.valueCents,
+      isBounty: chores.isBounty,
     })
     .from(completions)
     .innerJoin(chores, eq(completions.choreId, chores.id))

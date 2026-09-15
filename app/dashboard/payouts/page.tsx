@@ -1,16 +1,18 @@
 import { auth } from "@clerk/nextjs/server";
 import { markPaid } from "@/lib/actions/parent";
 import { formatCents } from "@/lib/money";
-import { getKidsWithBalances, getPayoutHistory } from "@/lib/queries";
+import { getEarnersWithBalances, getPayoutHistory } from "@/lib/queries";
 
 export default async function PayoutsPage() {
   const { userId } = await auth();
   if (!userId) return null;
 
-  const [kidsWithBalances, history] = await Promise.all([
-    getKidsWithBalances(userId),
+  const [earnersWithBalances, history] = await Promise.all([
+    getEarnersWithBalances(userId),
     getPayoutHistory(userId),
   ]);
+  // Paying yourself doesn't make sense — this list is real kids only.
+  const kidsWithBalances = earnersWithBalances.filter((e) => !e.isParent);
 
   return (
     <div className="flex flex-col gap-6">

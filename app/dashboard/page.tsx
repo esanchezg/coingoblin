@@ -1,15 +1,15 @@
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import { formatCents } from "@/lib/money";
-import { getKidsWithBalances, getOrCreateHousehold, getPendingCompletions } from "@/lib/queries";
+import { getEarnersWithBalances, getOrCreateHousehold, getPendingCompletions } from "@/lib/queries";
 
 export default async function DashboardHome() {
   const { userId } = await auth();
   if (!userId) return null;
 
-  const [household, kidsWithBalances, pending] = await Promise.all([
+  const [household, earnersWithBalances, pending] = await Promise.all([
     getOrCreateHousehold(userId),
-    getKidsWithBalances(userId),
+    getEarnersWithBalances(userId),
     getPendingCompletions(userId),
   ]);
 
@@ -36,26 +36,31 @@ export default async function DashboardHome() {
         <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
           Balances
         </h2>
-        {kidsWithBalances.length === 0 ? (
+        {earnersWithBalances.length === 0 ? (
           <p className="rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-500">
             No kids yet. Add one from the Kids tab.
           </p>
         ) : (
           <ul className="flex flex-col gap-2">
-            {kidsWithBalances.map((kid) => (
+            {earnersWithBalances.map((earner) => (
               <li
-                key={kid.id}
+                key={earner.id}
                 className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-4"
               >
                 <div className="flex items-center gap-3">
                   <span
                     className="h-3 w-3 rounded-full"
-                    style={{ backgroundColor: kid.color }}
+                    style={{ backgroundColor: earner.color }}
                   />
-                  <span className="font-medium">{kid.name}</span>
+                  <span className="font-medium">{earner.name}</span>
+                  {earner.isParent && (
+                    <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold uppercase text-slate-600">
+                      Parent
+                    </span>
+                  )}
                 </div>
                 <span className="font-semibold text-emerald-600">
-                  {formatCents(kid.balanceCents)}
+                  {formatCents(earner.balanceCents)}
                 </span>
               </li>
             ))}

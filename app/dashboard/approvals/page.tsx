@@ -25,7 +25,14 @@ export default async function ApprovalsPage() {
             <li key={item.id} className="rounded-2xl border border-slate-200 bg-white p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium">{item.choreTitle}</p>
+                  <p className="flex items-center gap-2 font-medium">
+                    {item.choreTitle}
+                    {item.isBounty && (
+                      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+                        🎯 Bounty
+                      </span>
+                    )}
+                  </p>
                   <p className="text-sm text-slate-500">
                     {item.kidName} · {formatCents(item.valueCents)}
                   </p>
