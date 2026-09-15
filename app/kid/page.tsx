@@ -7,15 +7,17 @@ import {
   getAvailableChoresForKid,
   getKidCompletions,
   getEarnersWithBalances,
+  getTakenTodayForKid,
 } from "@/lib/queries";
 
 export default async function KidHome() {
   const session = await getKidSession();
   if (!session) return null;
 
-  const [available, bounties, myCompletions, leaderboard] = await Promise.all([
+  const [available, bounties, takenToday, myCompletions, leaderboard] = await Promise.all([
     getAvailableChoresForKid(session.kid.id, session.parentUserId),
     getAvailableBountiesForKid(session.kid.id, session.parentUserId),
+    getTakenTodayForKid(session.kid.id, session.parentUserId),
     getKidCompletions(session.kid.id),
     getEarnersWithBalances(session.parentUserId),
   ]);
@@ -107,6 +109,31 @@ export default async function KidHome() {
           </ul>
         )}
       </section>
+
+      {takenToday.length > 0 && (
+        <section>
+          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
+            Already done today
+          </h2>
+          <ul className="flex flex-col gap-2">
+            {takenToday.map(({ chore, claim }) => (
+              <li
+                key={chore.id}
+                className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500"
+              >
+                <span className="flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: claim.earnerColor }} />
+                  {chore.title} —{" "}
+                  {claim.status === "approved"
+                    ? `done by ${claim.earnerIsParent ? `${claim.earnerName} (Parent)` : claim.earnerName}`
+                    : `claimed by ${claim.earnerName} · awaiting approval`}
+                </span>
+                <span className="font-medium">{formatCents(chore.valueCents)}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {pending.length > 0 && (
         <section>

@@ -225,9 +225,11 @@ export async function getClaimsForChores(
   return map;
 }
 
-async function availableForKid(kidId: string, parentUserId: string, isBounty: boolean) {
+// Chores/bounties a kid could plausibly do today: active, right isBounty flag,
+// scheduled today, and either open to anyone or assigned specifically to them.
+async function candidatesForKid(kidId: string, parentUserId: string, isBounty: boolean) {
   const db = getDb();
-  const candidates = await db
+  const rows = await db
     .select()
     .from(chores)
     .where(
@@ -238,8 +240,11 @@ async function availableForKid(kidId: string, parentUserId: string, isBounty: bo
         or(isNull(chores.assignedKidId), eq(chores.assignedKidId, kidId)),
       ),
     );
+  return rows.filter((chore) => isScheduledToday(chore));
+}
 
-  const scheduled = candidates.filter((chore) => isScheduledToday(chore));
+async function availableForKid(kidId: string, parentUserId: string, isBounty: boolean) {
+  const scheduled = await candidatesForKid(kidId, parentUserId, isBounty);
   if (scheduled.length === 0) return [];
 
   const claims = await getClaimsForChores(scheduled);
@@ -252,6 +257,21 @@ export async function getAvailableChoresForKid(kidId: string, parentUserId: stri
 
 export async function getAvailableBountiesForKid(kidId: string, parentUserId: string) {
   return availableForKid(kidId, parentUserId, true);
+}
+
+// Chores this kid could have done today but someone else (a sibling, or the
+// parent) already claimed — surfaced so kids can see when they got beaten to it.
+export async function getTakenTodayForKid(kidId: string, parentUserId: string) {
+  const scheduled = await candidatesForKid(kidId, parentUserId, false);
+  if (scheduled.length === 0) return [];
+
+  const claims = await getClaimsForChores(scheduled);
+  const taken: { chore: (typeof scheduled)[number]; claim: ChoreClaim }[] = [];
+  for (const chore of scheduled) {
+    const claim = claims.get(chore.id);
+    if (claim && claim.earnerId !== kidId) taken.push({ chore, claim });
+  }
+  return taken;
 }
 
 export async function getKidCompletions(kidId: string) {
