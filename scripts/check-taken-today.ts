@@ -22,7 +22,7 @@ async function main() {
   await db.insert(completions).values({
     choreId: feedTheDog.id,
     kidId: parent.id,
-    occurrenceDate: occurrenceDateFor(feedTheDog),
+    occurrenceDate: occurrenceDateFor(feedTheDog, "UTC"),
     status: "approved",
     reviewedAt: new Date(),
   });

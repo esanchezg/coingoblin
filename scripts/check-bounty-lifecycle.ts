@@ -18,7 +18,7 @@ async function main() {
   // Kid claims it (mirrors completeChore's insert)
   await db
     .insert(completions)
-    .values({ choreId: bounty.id, kidId: ripley.id, occurrenceDate: occurrenceDateFor(bounty) })
+    .values({ choreId: bounty.id, kidId: ripley.id, occurrenceDate: occurrenceDateFor(bounty, "UTC") })
     .onConflictDoUpdate({
       target: [completions.choreId, completions.occurrenceDate],
       setWhere: sql`${completions.status} = 'rejected'`,

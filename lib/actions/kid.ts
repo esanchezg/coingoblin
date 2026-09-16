@@ -8,7 +8,7 @@ import { getDb } from "@/db";
 import { chores, completions, kids } from "@/db/schema";
 import { isScheduledToday, occurrenceDateFor } from "@/lib/chore-schedule";
 import { clearKidSession, createKidSession, getKidSession } from "@/lib/kid-session";
-import { getHouseholdByFamilyCode, getKidsForParent } from "@/lib/queries";
+import { getHouseholdByFamilyCode, getHouseholdTimezone, getKidsForParent } from "@/lib/queries";
 
 export async function lookupHouseholdByCode(familyCode: string) {
   const household = await getHouseholdByFamilyCode(familyCode);
@@ -57,14 +57,15 @@ export async function completeChore(choreId: string) {
   if (chore.assignedKidId && chore.assignedKidId !== session.kid.id) {
     throw new Error("This chore isn't assigned to you");
   }
-  if (!isScheduledToday(chore)) throw new Error("Not scheduled today");
+  const timezone = await getHouseholdTimezone(session.parentUserId);
+  if (!isScheduledToday(chore, timezone)) throw new Error("Not scheduled today");
 
   await db
     .insert(completions)
     .values({
       choreId: chore.id,
       kidId: session.kid.id,
-      occurrenceDate: occurrenceDateFor(chore),
+      occurrenceDate: occurrenceDateFor(chore, timezone),
     })
     .onConflictDoUpdate({
       target: [completions.choreId, completions.occurrenceDate],

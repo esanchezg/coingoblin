@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { UserButton } from "@clerk/nextjs";
+import TimezoneSync from "./timezone-sync";
 
 const TABS = [
   { href: "/dashboard", label: "Home", icon: "🏠" },
@@ -12,6 +13,7 @@ const TABS = [
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col">
+      <TimezoneSync />
       <header className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3">
         <span className="text-lg font-bold">🪙 CoinGoblin</span>
         <UserButton />

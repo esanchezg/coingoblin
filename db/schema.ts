@@ -11,6 +11,9 @@ import {
 export const households = pgTable("households", {
   parentUserId: text("parent_user_id").primaryKey(),
   familyCode: text("family_code").notNull().unique(),
+  // IANA zone (e.g. "America/Denver"), auto-detected from the parent's browser on
+  // first dashboard load. null = not yet detected; every read site falls back to UTC.
+  timezone: text("timezone"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

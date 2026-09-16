@@ -6,6 +6,7 @@ import {
   getChoresForParent,
   getClaimsForChores,
   getEarnersForParent,
+  getHouseholdTimezone,
 } from "@/lib/queries";
 import { DAY_LABELS, isScheduledToday, scheduleLabel } from "@/lib/chore-schedule";
 import { getOrCreateParentEarner } from "@/lib/parent-earner";
@@ -16,13 +17,14 @@ export default async function ChoresPage() {
   if (!userId) return null;
 
   await getOrCreateParentEarner(userId);
-  const [choreRows, earners, bounties] = await Promise.all([
+  const [choreRows, earners, bounties, timezone] = await Promise.all([
     getChoresForParent(userId),
     getEarnersForParent(userId),
     getBountiesForParent(userId),
+    getHouseholdTimezone(userId),
   ]);
   const kidRows = earners.filter((e) => !e.isParent);
-  const claims = await getClaimsForChores(choreRows);
+  const claims = await getClaimsForChores(choreRows, timezone);
   const kidNameById = new Map(kidRows.map((k) => [k.id, k.name]));
   const openBounties = bounties.filter(({ claim }) => claim?.status !== "approved");
   const doneBounties = bounties.filter(({ claim }) => claim?.status === "approved");
@@ -160,7 +162,7 @@ export default async function ChoresPage() {
           <ul className="flex flex-col gap-2">
             {choreRows.map((chore) => {
               const claim = claims.get(chore.id);
-              const scheduledToday = isScheduledToday(chore);
+              const scheduledToday = isScheduledToday(chore, timezone);
               return (
                 <li
                   key={chore.id}

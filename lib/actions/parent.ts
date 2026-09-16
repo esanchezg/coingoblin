@@ -2,16 +2,17 @@
 
 import { auth } from "@clerk/nextjs/server";
 import bcrypt from "bcryptjs";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getDb } from "@/db";
-import { chores, completions, kids, payouts } from "@/db/schema";
+import { chores, completions, households, kids, payouts } from "@/db/schema";
 import { dollarsToCents } from "@/lib/money";
 import { occurrenceDateFor } from "@/lib/chore-schedule";
 import { getOrCreateParentEarner } from "@/lib/parent-earner";
 import {
   getChoresForParent,
   getEarnersWithBalances,
+  getHouseholdTimezone,
   getKidsForParent,
   getOrCreateHousehold,
 } from "@/lib/queries";
@@ -185,12 +186,14 @@ export async function logCompletionFor(formData: FormData) {
     .limit(1);
   if (!earner) throw new Error("Not found");
 
+  const timezone = await getHouseholdTimezone(parentUserId);
+
   await db
     .insert(completions)
     .values({
       choreId: chore.id,
       kidId: earner.id,
-      occurrenceDate: occurrenceDateFor(chore),
+      occurrenceDate: occurrenceDateFor(chore, timezone),
       status: "approved",
       reviewedAt: new Date(),
     })
@@ -207,6 +210,34 @@ export async function logCompletionFor(formData: FormData) {
 
   revalidatePath("/dashboard/chores");
   revalidatePath("/dashboard");
+}
+
+// Records the parent's browser timezone the first time it's seen. Only ever fills
+// a null — never clobbers an existing value, whether set here or by hand.
+export async function setHouseholdTimezoneIfUnset(timezone: string) {
+  const parentUserId = await requireParentUserId();
+
+  // Client-supplied — reject anything Intl won't accept before it reaches a
+  // column every chore-list render depends on.
+  if (typeof timezone !== "string" || timezone.length === 0 || timezone.length > 64) return;
+  try {
+    new Intl.DateTimeFormat("en-CA", { timeZone: timezone });
+  } catch {
+    return;
+  }
+
+  const db = getDb();
+  const updated = await db
+    .update(households)
+    .set({ timezone })
+    .where(and(eq(households.parentUserId, parentUserId), isNull(households.timezone)))
+    .returning({ parentUserId: households.parentUserId });
+
+  if (updated.length > 0) {
+    revalidatePath("/dashboard", "layout");
+    revalidatePath("/kid");
+  }
+  return { updated: updated.length > 0 };
 }
 
 export async function exportChores() {

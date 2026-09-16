@@ -1,7 +1,7 @@
 import { and, desc, eq, inArray, isNull, or } from "drizzle-orm";
 import { getDb } from "@/db";
 import { chores, completions, households, kids, payouts } from "@/db/schema";
-import { isScheduledToday, occurrenceDateFor } from "@/lib/chore-schedule";
+import { DEFAULT_TIMEZONE, isScheduledToday, occurrenceDateFor } from "@/lib/chore-schedule";
 
 function randomFamilyCode(): string {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no ambiguous chars
@@ -33,6 +33,14 @@ export async function getOrCreateHousehold(parentUserId: string) {
     }
   }
   throw new Error("Could not create household");
+}
+
+// Resolves the household's IANA zone for date/weekday math. Never throws and
+// never blocks: an undetected household reads as UTC, matching pre-timezone
+// behavior until the parent's browser reports its real zone.
+export async function getHouseholdTimezone(parentUserId: string): Promise<string> {
+  const household = await getOrCreateHousehold(parentUserId);
+  return household.timezone ?? DEFAULT_TIMEZONE;
 }
 
 export async function getHouseholdByFamilyCode(familyCode: string) {
@@ -84,7 +92,8 @@ export async function getBountiesForParent(parentUserId: string) {
     .where(and(eq(chores.parentUserId, parentUserId), eq(chores.isBounty, true)))
     .orderBy(desc(chores.createdAt));
 
-  const claims = await getClaimsForChores(bountyRows);
+  const timezone = await getHouseholdTimezone(parentUserId);
+  const claims = await getClaimsForChores(bountyRows, timezone);
   return bountyRows.map((bounty) => ({ bounty, claim: claims.get(bounty.id) ?? null }));
 }
 
@@ -177,6 +186,7 @@ export type ChoreClaim = {
 // For each chore's CURRENT occurrence, who (if anyone) has a non-rejected completion.
 export async function getClaimsForChores(
   choreRows: { id: string; recurrence: "once" | "daily" | "weekly" }[],
+  timezone: string,
 ): Promise<Map<string, ChoreClaim>> {
   const map = new Map<string, ChoreClaim>();
   if (choreRows.length === 0) return map;
@@ -209,7 +219,7 @@ export async function getClaimsForChores(
   );
 
   for (const chore of choreRows) {
-    const hit = byOccurrence.get(`${chore.id}:${occurrenceDateFor(chore)}`);
+    const hit = byOccurrence.get(`${chore.id}:${occurrenceDateFor(chore, timezone)}`);
     if (hit) {
       map.set(chore.id, {
         completionId: hit.completionId,
@@ -227,7 +237,12 @@ export async function getClaimsForChores(
 
 // Chores/bounties a kid could plausibly do today: active, right isBounty flag,
 // scheduled today, and either open to anyone or assigned specifically to them.
-async function candidatesForKid(kidId: string, parentUserId: string, isBounty: boolean) {
+async function candidatesForKid(
+  kidId: string,
+  parentUserId: string,
+  isBounty: boolean,
+  timezone: string,
+) {
   const db = getDb();
   const rows = await db
     .select()
@@ -240,14 +255,15 @@ async function candidatesForKid(kidId: string, parentUserId: string, isBounty: b
         or(isNull(chores.assignedKidId), eq(chores.assignedKidId, kidId)),
       ),
     );
-  return rows.filter((chore) => isScheduledToday(chore));
+  return rows.filter((chore) => isScheduledToday(chore, timezone));
 }
 
 async function availableForKid(kidId: string, parentUserId: string, isBounty: boolean) {
-  const scheduled = await candidatesForKid(kidId, parentUserId, isBounty);
+  const timezone = await getHouseholdTimezone(parentUserId);
+  const scheduled = await candidatesForKid(kidId, parentUserId, isBounty, timezone);
   if (scheduled.length === 0) return [];
 
-  const claims = await getClaimsForChores(scheduled);
+  const claims = await getClaimsForChores(scheduled, timezone);
   return scheduled.filter((chore) => !claims.has(chore.id));
 }
 
@@ -262,10 +278,11 @@ export async function getAvailableBountiesForKid(kidId: string, parentUserId: st
 // Chores this kid could have done today but someone else (a sibling, or the
 // parent) already claimed — surfaced so kids can see when they got beaten to it.
 export async function getTakenTodayForKid(kidId: string, parentUserId: string) {
-  const scheduled = await candidatesForKid(kidId, parentUserId, false);
+  const timezone = await getHouseholdTimezone(parentUserId);
+  const scheduled = await candidatesForKid(kidId, parentUserId, false, timezone);
   if (scheduled.length === 0) return [];
 
-  const claims = await getClaimsForChores(scheduled);
+  const claims = await getClaimsForChores(scheduled, timezone);
   const taken: { chore: (typeof scheduled)[number]; claim: ChoreClaim }[] = [];
   for (const chore of scheduled) {
     const claim = claims.get(chore.id);
