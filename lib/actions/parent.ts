@@ -40,6 +40,22 @@ export async function createKid(formData: FormData) {
   revalidatePath("/dashboard/kids");
 }
 
+export async function resetKidPin(formData: FormData) {
+  const parentUserId = await requireParentUserId();
+  const kidId = String(formData.get("kidId") ?? "");
+  const pin = String(formData.get("pin") ?? "").trim();
+
+  if (!/^\d{4,6}$/.test(pin)) throw new Error("PIN must be 4-6 digits");
+
+  const pinHash = await bcrypt.hash(pin, 10);
+  const db = getDb();
+  await db
+    .update(kids)
+    .set({ pinHash })
+    .where(and(eq(kids.id, kidId), eq(kids.parentUserId, parentUserId), eq(kids.isParent, false)));
+  revalidatePath("/dashboard/kids");
+}
+
 export async function deleteKid(kidId: string) {
   const parentUserId = await requireParentUserId();
   const db = getDb();

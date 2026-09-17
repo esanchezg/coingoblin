@@ -1,5 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
-import { createKid, deleteKid } from "@/lib/actions/parent";
+import { createKid, deleteKid, resetKidPin } from "@/lib/actions/parent";
 import { getKidsForParent } from "@/lib/queries";
 
 const COLORS = ["#6366f1", "#ec4899", "#22c55e", "#f97316", "#0ea5e9", "#a855f7"];
@@ -25,22 +25,45 @@ export default async function KidsPage() {
             {kidRows.map((kid) => (
               <li
                 key={kid.id}
-                className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-4"
+                className="rounded-2xl border border-slate-200 bg-white p-4"
               >
-                <div className="flex items-center gap-3">
-                  <span className="h-3 w-3 rounded-full" style={{ backgroundColor: kid.color }} />
-                  <span className="font-medium">{kid.name}</span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="h-3 w-3 rounded-full" style={{ backgroundColor: kid.color }} />
+                    <span className="font-medium">{kid.name}</span>
+                  </div>
+                  <form
+                    action={async () => {
+                      "use server";
+                      await deleteKid(kid.id);
+                    }}
+                  >
+                    <button type="submit" className="text-sm text-red-500">
+                      Remove
+                    </button>
+                  </form>
                 </div>
-                <form
-                  action={async () => {
-                    "use server";
-                    await deleteKid(kid.id);
-                  }}
-                >
-                  <button type="submit" className="text-sm text-red-500">
-                    Remove
-                  </button>
-                </form>
+
+                <details className="mt-2">
+                  <summary className="cursor-pointer text-sm text-indigo-600">Reset PIN</summary>
+                  <form action={resetKidPin} className="mt-2 flex gap-2">
+                    <input type="hidden" name="kidId" value={kid.id} />
+                    <input
+                      name="pin"
+                      inputMode="numeric"
+                      pattern="\d{4,6}"
+                      placeholder="New 4-6 digit PIN"
+                      required
+                      className="flex-1 rounded-xl border border-slate-300 px-3 py-2 text-sm"
+                    />
+                    <button
+                      type="submit"
+                      className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white"
+                    >
+                      Save
+                    </button>
+                  </form>
+                </details>
               </li>
             ))}
           </ul>

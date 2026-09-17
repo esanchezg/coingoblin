@@ -5,7 +5,7 @@ import { getDb } from "@/db";
 import { kidSessions, kids } from "@/db/schema";
 
 const COOKIE_NAME = "kid_session";
-const SESSION_DURATION_MS = 1000 * 60 * 60 * 24 * 14; // 14 days
+const SESSION_DURATION_MS = 1000 * 60 * 60 * 24 * 180; // 180 days
 
 export async function createKidSession(kidId: string, parentUserId: string) {
   const token = randomBytes(32).toString("hex");
