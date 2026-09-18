@@ -24,8 +24,8 @@ async function main() {
   const availableChores = await getAvailableChoresForKid(ripley.id, parentUserId);
   console.log(
     "2) getAvailableChoresForKid excludes bounty:",
-    availableChores.every((c) => c.title !== "Clean the garage") ? "PASS" : "FAIL",
-    availableChores.map((c) => c.title),
+    availableChores.every(({ chore }) => chore.title !== "Clean the garage") ? "PASS" : "FAIL",
+    availableChores.map(({ chore }) => chore.title),
   );
 
   const availableBounties = await getAvailableBountiesForKid(ripley.id, parentUserId);
@@ -41,7 +41,7 @@ async function main() {
     bounties.some((b) => b.bounty.title === "Clean the garage" && b.claim === null) ? "PASS" : "FAIL",
   );
 
-  const labels = availableChores.map((c) => `${c.title}: ${scheduleLabel(c)}`);
+  const labels = availableChores.map(({ chore }) => `${chore.title}: ${scheduleLabel(chore)}`);
   console.log("5) schedule labels for today's chores:", labels);
   const dailyOk = labels.some((l) => l.startsWith("Feed the dog: Every day"));
   console.log("   'Feed the dog' labeled 'Every day':", dailyOk ? "PASS" : "FAIL");

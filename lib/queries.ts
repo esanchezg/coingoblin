@@ -1,7 +1,7 @@
 import { and, desc, eq, inArray, isNull, or } from "drizzle-orm";
 import { getDb } from "@/db";
 import { chores, completions, households, kids, payouts } from "@/db/schema";
-import { DEFAULT_TIMEZONE, isScheduledToday, occurrenceDateFor } from "@/lib/chore-schedule";
+import { DEFAULT_TIMEZONE, claimableOccurrenceDates } from "@/lib/chore-schedule";
 
 function randomFamilyCode(): string {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no ambiguous chars
@@ -93,8 +93,17 @@ export async function getBountiesForParent(parentUserId: string) {
     .orderBy(desc(chores.createdAt));
 
   const timezone = await getHouseholdTimezone(parentUserId);
-  const claims = await getClaimsForChores(bountyRows, timezone);
-  return bountyRows.map((bounty) => ({ bounty, claim: claims.get(bounty.id) ?? null }));
+  const slots = expandOccurrences(bountyRows, timezone);
+  const claims = await getClaimsForOccurrences(
+    slots.map(({ chore, occurrenceDate }) => ({ choreId: chore.id, occurrenceDate })),
+  );
+  return bountyRows.map((bounty) => {
+    const claim =
+      claimableOccurrenceDates(bounty, timezone)
+        .map((d) => claims.get(occurrenceKey(bounty.id, d)))
+        .find(Boolean) ?? null;
+    return { bounty, claim };
+  });
 }
 
 async function balancesForKids(kidIds: string[]) {
@@ -183,13 +192,18 @@ export type ChoreClaim = {
   status: "pending" | "approved";
 };
 
-// For each chore's CURRENT occurrence, who (if anyone) has a non-rejected completion.
-export async function getClaimsForChores(
-  choreRows: { id: string; recurrence: "once" | "daily" | "weekly" }[],
-  timezone: string,
+export function occurrenceKey(choreId: string, occurrenceDate: string): string {
+  return `${choreId}:${occurrenceDate}`;
+}
+
+// Who (if anyone) holds a non-rejected completion for each requested (chore, date)
+// slot. Keyed by occurrenceKey(). Dates are computed by the caller (via
+// claimableOccurrenceDates) and never trusted from a client.
+export async function getClaimsForOccurrences(
+  slots: { choreId: string; occurrenceDate: string }[],
 ): Promise<Map<string, ChoreClaim>> {
   const map = new Map<string, ChoreClaim>();
-  if (choreRows.length === 0) return map;
+  if (slots.length === 0) return map;
 
   const db = getDb();
   const rows = await db
@@ -206,45 +220,55 @@ export async function getClaimsForChores(
     .from(completions)
     .innerJoin(kids, eq(completions.kidId, kids.id))
     .where(
-      inArray(
-        completions.choreId,
-        choreRows.map((c) => c.id),
+      and(
+        inArray(
+          completions.choreId,
+          [...new Set(slots.map((s) => s.choreId))],
+        ),
+        inArray(
+          completions.occurrenceDate,
+          [...new Set(slots.map((s) => s.occurrenceDate))],
+        ),
       ),
     );
 
-  const byOccurrence = new Map(
-    rows
-      .filter((r) => r.status !== "rejected")
-      .map((r) => [`${r.choreId}:${r.occurrenceDate}`, r] as const),
-  );
-
-  for (const chore of choreRows) {
-    const hit = byOccurrence.get(`${chore.id}:${occurrenceDateFor(chore, timezone)}`);
-    if (hit) {
-      map.set(chore.id, {
-        completionId: hit.completionId,
-        earnerId: hit.earnerId,
-        earnerName: hit.earnerName,
-        earnerColor: hit.earnerColor,
-        earnerIsParent: hit.earnerIsParent,
-        status: hit.status as "pending" | "approved",
-      });
-    }
+  const wanted = new Set(slots.map((s) => occurrenceKey(s.choreId, s.occurrenceDate)));
+  for (const r of rows) {
+    if (r.status === "rejected") continue;
+    const key = occurrenceKey(r.choreId, r.occurrenceDate);
+    if (!wanted.has(key)) continue; // cross-product row from the two inArrays
+    map.set(key, {
+      completionId: r.completionId,
+      earnerId: r.earnerId,
+      earnerName: r.earnerName,
+      earnerColor: r.earnerColor,
+      earnerIsParent: r.earnerIsParent,
+      status: r.status as "pending" | "approved",
+    });
   }
-
   return map;
 }
 
-// Chores/bounties a kid could plausibly do today: active, right isBounty flag,
-// scheduled today, and either open to anyone or assigned specifically to them.
-async function candidatesForKid(
-  kidId: string,
-  parentUserId: string,
-  isBounty: boolean,
+// Expands chores into every slot they currently have open-or-claimable this week.
+// Bounties and one-time chores expand to exactly one sentinel slot, so nothing
+// downstream needs an isBounty branch.
+function expandOccurrences<T extends { id: string; recurrence: "once" | "daily" | "weekly"; daysOfWeek: string | null }>(
+  choreRows: T[],
   timezone: string,
-) {
+  now: Date = new Date(),
+): { chore: T; occurrenceDate: string }[] {
+  return choreRows.flatMap((chore) =>
+    claimableOccurrenceDates(chore, timezone, now).map((occurrenceDate) => ({ chore, occurrenceDate })),
+  );
+}
+
+// Chores/bounties a kid could plausibly do: active, right isBounty flag, and
+// either open to anyone or assigned specifically to them. Scheduling (which days
+// are actually claimable) is decided later by claimableOccurrenceDates, not here —
+// filtering it here would wrongly exclude a chore missed earlier in the week.
+async function candidateChoresForKid(kidId: string, parentUserId: string, isBounty: boolean) {
   const db = getDb();
-  const rows = await db
+  return db
     .select()
     .from(chores)
     .where(
@@ -255,40 +279,69 @@ async function candidatesForKid(
         or(isNull(chores.assignedKidId), eq(chores.assignedKidId, kidId)),
       ),
     );
-  return rows.filter((chore) => isScheduledToday(chore, timezone));
 }
 
-async function availableForKid(kidId: string, parentUserId: string, isBounty: boolean) {
+async function openSlotsForKid(kidId: string, parentUserId: string, isBounty: boolean) {
   const timezone = await getHouseholdTimezone(parentUserId);
-  const scheduled = await candidatesForKid(kidId, parentUserId, isBounty, timezone);
-  if (scheduled.length === 0) return [];
+  const candidates = await candidateChoresForKid(kidId, parentUserId, isBounty);
+  const slots = expandOccurrences(candidates, timezone);
+  if (slots.length === 0) return [];
 
-  const claims = await getClaimsForChores(scheduled, timezone);
-  return scheduled.filter((chore) => !claims.has(chore.id));
+  const claims = await getClaimsForOccurrences(
+    slots.map(({ chore, occurrenceDate }) => ({ choreId: chore.id, occurrenceDate })),
+  );
+  return slots.filter(({ chore, occurrenceDate }) => !claims.has(occurrenceKey(chore.id, occurrenceDate)));
 }
 
+// One entry per open slot — a chore missed Mon and Wed appears twice, each
+// independently claimable and independently paid.
 export async function getAvailableChoresForKid(kidId: string, parentUserId: string) {
-  return availableForKid(kidId, parentUserId, false);
+  return openSlotsForKid(kidId, parentUserId, false);
 }
 
+// Bounties only ever have one slot (the sentinel), so the occurrence plumbing is
+// flattened away here and callers keep the plain chore list they already had.
 export async function getAvailableBountiesForKid(kidId: string, parentUserId: string) {
-  return availableForKid(kidId, parentUserId, true);
+  const slots = await openSlotsForKid(kidId, parentUserId, true);
+  return slots.map(({ chore }) => chore);
 }
 
-// Chores this kid could have done today but someone else (a sibling, or the
+// Chores this kid could have done this week but someone else (a sibling, or the
 // parent) already claimed — surfaced so kids can see when they got beaten to it.
-export async function getTakenTodayForKid(kidId: string, parentUserId: string) {
+export async function getTakenChoresForKid(kidId: string, parentUserId: string) {
   const timezone = await getHouseholdTimezone(parentUserId);
-  const scheduled = await candidatesForKid(kidId, parentUserId, false, timezone);
-  if (scheduled.length === 0) return [];
+  const candidates = await candidateChoresForKid(kidId, parentUserId, false);
+  const slots = expandOccurrences(candidates, timezone);
+  if (slots.length === 0) return [];
 
-  const claims = await getClaimsForChores(scheduled, timezone);
-  const taken: { chore: (typeof scheduled)[number]; claim: ChoreClaim }[] = [];
-  for (const chore of scheduled) {
-    const claim = claims.get(chore.id);
-    if (claim && claim.earnerId !== kidId) taken.push({ chore, claim });
+  const claims = await getClaimsForOccurrences(
+    slots.map(({ chore, occurrenceDate }) => ({ choreId: chore.id, occurrenceDate })),
+  );
+  const taken: { chore: (typeof candidates)[number]; occurrenceDate: string; claim: ChoreClaim }[] = [];
+  for (const { chore, occurrenceDate } of slots) {
+    const claim = claims.get(occurrenceKey(chore.id, occurrenceDate));
+    if (claim && claim.earnerId !== kidId) taken.push({ chore, occurrenceDate, claim });
   }
-  return taken;
+  return taken.sort((a, b) => b.occurrenceDate.localeCompare(a.occurrenceDate));
+}
+
+// Every open-or-claimed slot this week for the household's active recurring/
+// one-time chores, for the parent dashboard's per-day status list. Paused chores
+// contribute nothing — there's nothing claimable while a chore is paused.
+export async function getChoreOccurrencesForParent(parentUserId: string) {
+  const timezone = await getHouseholdTimezone(parentUserId);
+  const choreRows = (await getChoresForParent(parentUserId)).filter((c) => c.active);
+  const slots = expandOccurrences(choreRows, timezone);
+  if (slots.length === 0) return [];
+
+  const claims = await getClaimsForOccurrences(
+    slots.map(({ chore, occurrenceDate }) => ({ choreId: chore.id, occurrenceDate })),
+  );
+  return slots.map(({ chore, occurrenceDate }) => ({
+    chore,
+    occurrenceDate,
+    claim: claims.get(occurrenceKey(chore.id, occurrenceDate)) ?? null,
+  }));
 }
 
 export async function getKidCompletions(kidId: string) {

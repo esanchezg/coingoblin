@@ -3,12 +3,12 @@ import { createChore, deleteChore, logCompletionFor, setChoreActive } from "@/li
 import { formatCents } from "@/lib/money";
 import {
   getBountiesForParent,
+  getChoreOccurrencesForParent,
   getChoresForParent,
-  getClaimsForChores,
   getEarnersForParent,
   getHouseholdTimezone,
 } from "@/lib/queries";
-import { DAY_LABELS, isScheduledToday, scheduleLabel } from "@/lib/chore-schedule";
+import { DAY_LABELS, occurrenceDayLabel, scheduleLabel } from "@/lib/chore-schedule";
 import { getOrCreateParentEarner } from "@/lib/parent-earner";
 import ChoreDataTransfer from "./data-transfer";
 
@@ -17,15 +17,21 @@ export default async function ChoresPage() {
   if (!userId) return null;
 
   await getOrCreateParentEarner(userId);
-  const [choreRows, earners, bounties, timezone] = await Promise.all([
+  const [choreRows, earners, bounties, timezone, occurrences] = await Promise.all([
     getChoresForParent(userId),
     getEarnersForParent(userId),
     getBountiesForParent(userId),
     getHouseholdTimezone(userId),
+    getChoreOccurrencesForParent(userId),
   ]);
   const kidRows = earners.filter((e) => !e.isParent);
-  const claims = await getClaimsForChores(choreRows, timezone);
   const kidNameById = new Map(kidRows.map((k) => [k.id, k.name]));
+  const slotsByChore = new Map<string, typeof occurrences>();
+  for (const slot of occurrences) {
+    const list = slotsByChore.get(slot.chore.id);
+    if (list) list.push(slot);
+    else slotsByChore.set(slot.chore.id, [slot]);
+  }
   const openBounties = bounties.filter(({ claim }) => claim?.status !== "approved");
   const doneBounties = bounties.filter(({ claim }) => claim?.status === "approved");
 
@@ -161,8 +167,7 @@ export default async function ChoresPage() {
         ) : (
           <ul className="flex flex-col gap-2">
             {choreRows.map((chore) => {
-              const claim = claims.get(chore.id);
-              const scheduledToday = isScheduledToday(chore, timezone);
+              const slots = slotsByChore.get(chore.id) ?? [];
               return (
                 <li
                   key={chore.id}
@@ -203,33 +208,51 @@ export default async function ChoresPage() {
                   </div>
 
                   {chore.active &&
-                    (!scheduledToday ? (
-                      <p className="mt-2 text-xs text-slate-400">Not scheduled today</p>
-                    ) : claim ? (
-                      <p className="mt-2 rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
-                        ✓ Done today by {claim.earnerName}
-                        {claim.status === "pending" ? " · awaiting approval" : ""}
-                      </p>
+                    (slots.length === 0 ? (
+                      <p className="mt-2 text-xs text-slate-400">Not due yet this week</p>
                     ) : (
-                      <form action={logCompletionFor} className="mt-3 flex gap-2">
-                        <input type="hidden" name="choreId" value={chore.id} />
-                        <select
-                          name="earnerId"
-                          className="flex-1 rounded-xl border border-slate-300 px-3 py-2 text-sm"
-                        >
-                          {earners.map((e) => (
-                            <option key={e.id} value={e.id}>
-                              {e.isParent ? `Me (${e.name})` : e.name}
-                            </option>
-                          ))}
-                        </select>
-                        <button
-                          type="submit"
-                          className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white"
-                        >
-                          Log done
-                        </button>
-                      </form>
+                      <ul className="mt-2 flex flex-col gap-1.5">
+                        {slots.map(({ occurrenceDate, claim }) => {
+                          const dayLabel = occurrenceDayLabel(occurrenceDate, timezone);
+                          return (
+                            <li key={occurrenceDate}>
+                              {claim ? (
+                                <p className="rounded-xl bg-emerald-50 px-3 py-1.5 text-sm text-emerald-700">
+                                  ✓ {dayLabel ? `${dayLabel} — ` : ""}
+                                  {claim.earnerName}
+                                  {claim.status === "pending" ? " · awaiting approval" : ""}
+                                </p>
+                              ) : (
+                                <form action={logCompletionFor} className="flex items-center gap-2">
+                                  <input type="hidden" name="choreId" value={chore.id} />
+                                  <input type="hidden" name="occurrenceDate" value={occurrenceDate} />
+                                  {dayLabel && (
+                                    <span className="w-10 shrink-0 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                                      {dayLabel}
+                                    </span>
+                                  )}
+                                  <select
+                                    name="earnerId"
+                                    className="flex-1 rounded-xl border border-slate-300 px-3 py-1.5 text-sm"
+                                  >
+                                    {earners.map((e) => (
+                                      <option key={e.id} value={e.id}>
+                                        {e.isParent ? `Me (${e.name})` : e.name}
+                                      </option>
+                                    ))}
+                                  </select>
+                                  <button
+                                    type="submit"
+                                    className="rounded-xl bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white"
+                                  >
+                                    Log done
+                                  </button>
+                                </form>
+                              )}
+                            </li>
+                          );
+                        })}
+                      </ul>
                     ))}
                 </li>
               );

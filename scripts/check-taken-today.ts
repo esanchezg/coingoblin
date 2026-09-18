@@ -2,7 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { getDb } from "../db";
 import { chores, completions, kids } from "../db/schema";
 import { occurrenceDateFor } from "../lib/chore-schedule";
-import { getAvailableChoresForKid, getTakenTodayForKid } from "../lib/queries";
+import { getAvailableChoresForKid, getTakenChoresForKid } from "../lib/queries";
 
 async function main() {
   const db = getDb();
@@ -30,10 +30,10 @@ async function main() {
   const ripleyAvailable = await getAvailableChoresForKid(ripley.id, parentUserId);
   console.log(
     "1) 'Feed the dog' no longer available to Ripley:",
-    ripleyAvailable.every((c) => c.title !== "Feed the dog") ? "PASS" : "FAIL",
+    ripleyAvailable.every(({ chore }) => chore.title !== "Feed the dog") ? "PASS" : "FAIL",
   );
 
-  const ripleyTaken = await getTakenTodayForKid(ripley.id, parentUserId);
+  const ripleyTaken = await getTakenChoresForKid(ripley.id, parentUserId);
   const hit = ripleyTaken.find((t) => t.chore.title === "Feed the dog");
   console.log(
     "2) Ripley sees it as 'done by TestParent (Parent)':",
@@ -43,7 +43,7 @@ async function main() {
     hit,
   );
 
-  const jordanTaken = await getTakenTodayForKid(jordan.id, parentUserId);
+  const jordanTaken = await getTakenChoresForKid(jordan.id, parentUserId);
   const hitJordan = jordanTaken.find((t) => t.chore.title === "Feed the dog");
   console.log(
     "3) Jordan (sibling) also sees it as taken:",

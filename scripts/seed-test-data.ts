@@ -40,6 +40,16 @@ async function main() {
       assignedKidId: jordan.id,
     },
     {
+      // Pinned to Monday so there's a real earlier-in-week catch-up slot to test,
+      // unless today itself is Monday (then the week has genuinely just started).
+      parentUserId,
+      title: "Water the plants",
+      valueCents: 100,
+      recurrence: "weekly",
+      daysOfWeek: "1",
+      assignedKidId: null,
+    },
+    {
       parentUserId,
       title: "Clean your room",
       valueCents: 300,

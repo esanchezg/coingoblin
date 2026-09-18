@@ -1,26 +1,31 @@
 import { completeChore } from "@/lib/actions/kid";
 import { getKidSession } from "@/lib/kid-session";
 import { formatCents } from "@/lib/money";
-import { scheduleLabel } from "@/lib/chore-schedule";
+import { isCatchUpOccurrence, occurrenceDayLabel, scheduleLabel } from "@/lib/chore-schedule";
 import {
   getAvailableBountiesForKid,
   getAvailableChoresForKid,
   getKidCompletions,
   getEarnersWithBalances,
-  getTakenTodayForKid,
+  getHouseholdTimezone,
+  getTakenChoresForKid,
 } from "@/lib/queries";
 
 export default async function KidHome() {
   const session = await getKidSession();
   if (!session) return null;
 
-  const [available, bounties, takenToday, myCompletions, leaderboard] = await Promise.all([
+  const [available, bounties, taken, myCompletions, leaderboard, timezone] = await Promise.all([
     getAvailableChoresForKid(session.kid.id, session.parentUserId),
     getAvailableBountiesForKid(session.kid.id, session.parentUserId),
-    getTakenTodayForKid(session.kid.id, session.parentUserId),
+    getTakenChoresForKid(session.kid.id, session.parentUserId),
     getKidCompletions(session.kid.id),
     getEarnersWithBalances(session.parentUserId),
+    getHouseholdTimezone(session.parentUserId),
   ]);
+
+  const dueToday = available.filter((s) => !isCatchUpOccurrence(s.occurrenceDate, timezone));
+  const catchUp = available.filter((s) => isCatchUpOccurrence(s.occurrenceDate, timezone));
 
   const pending = myCompletions.filter((c) => c.status === "pending");
   const completedBounties = myCompletions.filter((c) => c.isBounty && c.status === "approved");
@@ -71,15 +76,15 @@ export default async function KidHome() {
         <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
           Today&apos;s chores
         </h2>
-        {available.length === 0 ? (
+        {dueToday.length === 0 ? (
           <p className="rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-500">
-            Nothing to do right now. Nice!
+            Nothing due today. Nice!
           </p>
         ) : (
           <ul className="flex flex-col gap-2">
-            {available.map((chore) => (
+            {dueToday.map(({ chore, occurrenceDate }) => (
               <li
-                key={chore.id}
+                key={`${chore.id}:${occurrenceDate}`}
                 className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-4"
               >
                 <div>
@@ -94,7 +99,7 @@ export default async function KidHome() {
                 <form
                   action={async () => {
                     "use server";
-                    await completeChore(chore.id);
+                    await completeChore(chore.id, occurrenceDate);
                   }}
                 >
                   <button
@@ -110,20 +115,59 @@ export default async function KidHome() {
         )}
       </section>
 
-      {takenToday.length > 0 && (
-        <section>
-          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
-            Already done today
+      {catchUp.length > 0 && (
+        <section className="rounded-2xl border border-sky-300 bg-sky-50 p-4">
+          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-sky-800">
+            ⏰ Catch up on chores you missed
           </h2>
           <ul className="flex flex-col gap-2">
-            {takenToday.map(({ chore, claim }) => (
+            {catchUp.map(({ chore, occurrenceDate }) => (
               <li
-                key={chore.id}
+                key={`${chore.id}:${occurrenceDate}`}
+                className="flex items-center justify-between rounded-2xl border border-sky-200 bg-white p-4"
+              >
+                <div>
+                  <p className="font-medium">{chore.title}</p>
+                  <div className="mt-1 flex items-center gap-2">
+                    <p className="text-sm text-slate-500">{formatCents(chore.valueCents)}</p>
+                    <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-700">
+                      {occurrenceDayLabel(occurrenceDate, timezone)}
+                    </span>
+                  </div>
+                </div>
+                <form
+                  action={async () => {
+                    "use server";
+                    await completeChore(chore.id, occurrenceDate);
+                  }}
+                >
+                  <button
+                    type="submit"
+                    className="rounded-xl bg-sky-600 px-4 py-2 font-semibold text-white"
+                  >
+                    Done!
+                  </button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {taken.length > 0 && (
+        <section>
+          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
+            Already done this week
+          </h2>
+          <ul className="flex flex-col gap-2">
+            {taken.map(({ chore, occurrenceDate, claim }) => (
+              <li
+                key={`${chore.id}:${occurrenceDate}`}
                 className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500"
               >
                 <span className="flex items-center gap-2">
                   <span className="h-2 w-2 rounded-full" style={{ backgroundColor: claim.earnerColor }} />
-                  {chore.title} —{" "}
+                  {occurrenceDayLabel(occurrenceDate, timezone)} · {chore.title} —{" "}
                   {claim.status === "approved"
                     ? `done by ${claim.earnerIsParent ? `${claim.earnerName} (Parent)` : claim.earnerName}`
                     : `claimed by ${claim.earnerName} · awaiting approval`}

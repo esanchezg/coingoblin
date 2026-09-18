@@ -65,6 +65,69 @@ export function isScheduledToday(
   return parseDaysOfWeek(chore.daysOfWeek).includes(weekdayInZone(timezone, now));
 }
 
+// YYYY-MM-DD from a UTC-anchored Date. The cursor dates in claimableOccurrenceDates
+// are calendar anchors, not instants, so this must never re-zone them.
+function isoFromUtcDate(d: Date): string {
+  const y = String(d.getUTCFullYear()).padStart(4, "0");
+  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(d.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+// Every occurrence of this chore that is still open to be logged right now: from
+// this week's Monday (household-local) through today, inclusive, limited to the
+// days the chore is actually scheduled on. Chronological, ascending. A missed day
+// stays in this set for the rest of the week and drops out once Monday arrives.
+// One-time chores/bounties are outside the week window entirely — one sentinel
+// slot, forever, until claimed.
+export function claimableOccurrenceDates(
+  chore: Pick<Chore, "recurrence" | "daysOfWeek">,
+  timezone: string,
+  now: Date = new Date(),
+): string[] {
+  if (chore.recurrence === "once") return [occurrenceDateFor(chore, timezone, now)];
+
+  const days = chore.recurrence === "daily" ? null : parseDaysOfWeek(chore.daysOfWeek);
+
+  // Anchor on the household-local calendar date, then do every subsequent step in
+  // UTC. UTC has no DST, so the walk can't skip or duplicate a calendar day; the
+  // zone only ever influences which date "today" is.
+  const cursor = new Date(`${todayIso(timezone, now)}T00:00:00Z`);
+  const daysSinceMonday = (cursor.getUTCDay() + 6) % 7; // 0=Sun..6=Sat, Monday=1
+  cursor.setUTCDate(cursor.getUTCDate() - daysSinceMonday);
+
+  const dates: string[] = [];
+  for (let i = 0; i <= daysSinceMonday; i++) {
+    if (days === null || days.includes(cursor.getUTCDay())) dates.push(isoFromUtcDate(cursor));
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+  return dates;
+}
+
+// Human label for one slot. null for the one-time sentinel — there is no
+// meaningful weekday for "whenever you get to it"; callers should omit the day
+// chip rather than print a fake one.
+export function occurrenceDayLabel(
+  occurrenceDate: string,
+  timezone: string,
+  now: Date = new Date(),
+): string | null {
+  if (occurrenceDate === ONCE_OCCURRENCE_DATE) return null;
+  if (occurrenceDate === todayIso(timezone, now)) return "Today";
+  return DAY_LABELS[new Date(`${occurrenceDate}T00:00:00Z`).getUTCDay()] ?? null;
+}
+
+// True only for a genuine make-up slot from earlier this week. The one-time
+// sentinel is not a catch-up (it has no day), and neither is today.
+export function isCatchUpOccurrence(
+  occurrenceDate: string,
+  timezone: string,
+  now: Date = new Date(),
+): boolean {
+  if (occurrenceDate === ONCE_OCCURRENCE_DATE) return false;
+  return occurrenceDate !== todayIso(timezone, now);
+}
+
 export function parseDaysOfWeek(value: string | null): number[] {
   return (value ?? "")
     .split(",")

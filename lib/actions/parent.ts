@@ -7,7 +7,7 @@ import { revalidatePath } from "next/cache";
 import { getDb } from "@/db";
 import { chores, completions, households, kids, payouts } from "@/db/schema";
 import { dollarsToCents } from "@/lib/money";
-import { occurrenceDateFor } from "@/lib/chore-schedule";
+import { claimableOccurrenceDates } from "@/lib/chore-schedule";
 import { getOrCreateParentEarner } from "@/lib/parent-earner";
 import {
   getChoresForParent,
@@ -179,6 +179,7 @@ export async function logCompletionFor(formData: FormData) {
   const parentUserId = await requireParentUserId();
   const choreId = String(formData.get("choreId") ?? "");
   const earnerId = String(formData.get("earnerId") ?? "");
+  const occurrenceDate = String(formData.get("occurrenceDate") ?? "");
 
   const db = getDb();
   const [chore] = await db
@@ -203,13 +204,16 @@ export async function logCompletionFor(formData: FormData) {
   if (!earner) throw new Error("Not found");
 
   const timezone = await getHouseholdTimezone(parentUserId);
+  if (!claimableOccurrenceDates(chore, timezone).includes(occurrenceDate)) {
+    throw new Error("That day isn't loggable right now");
+  }
 
   await db
     .insert(completions)
     .values({
       choreId: chore.id,
       kidId: earner.id,
-      occurrenceDate: occurrenceDateFor(chore, timezone),
+      occurrenceDate,
       status: "approved",
       reviewedAt: new Date(),
     })
