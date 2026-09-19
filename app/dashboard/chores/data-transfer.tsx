@@ -68,7 +68,7 @@ export default function ChoreDataTransfer() {
           type="button"
           onClick={handleExportChores}
           disabled={isPending}
-          className="flex-1 rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 disabled:opacity-50"
+          className="flex-1 rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 disabled:opacity-50 dark:border-slate-700 dark:text-slate-300"
         >
           Export chores
         </button>
@@ -76,18 +76,18 @@ export default function ChoreDataTransfer() {
           type="button"
           onClick={handleExportBalances}
           disabled={isPending}
-          className="flex-1 rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 disabled:opacity-50"
+          className="flex-1 rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 disabled:opacity-50 dark:border-slate-700 dark:text-slate-300"
         >
           Export balances
         </button>
       </div>
 
-      <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+      <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
         Importing deletes every current chore and replaces it with the file&apos;s contents.
         Export your balances first if you owe your kids money — that record isn&apos;t restored
         by an import.
       </p>
-      <label className="rounded-xl border border-slate-300 px-4 py-2 text-center text-sm font-semibold text-slate-700">
+      <label className="rounded-xl border border-slate-300 px-4 py-2 text-center text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-300">
         {isPending ? "Working…" : "Import chores"}
         <input
           type="file"
@@ -99,7 +99,7 @@ export default function ChoreDataTransfer() {
       </label>
 
       {message && (
-        <p className={`text-sm ${message.kind === "error" ? "text-red-600" : "text-emerald-600"}`}>
+        <p className={`text-sm ${message.kind === "error" ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400"}`}>
           {message.text}
         </p>
       )}

@@ -23,7 +23,7 @@ export default async function DashboardHome() {
       {pending.length > 0 && (
         <Link
           href="/dashboard/approvals"
-          className="flex items-center justify-between rounded-2xl border border-amber-300 bg-amber-50 p-4 text-amber-900"
+          className="flex items-center justify-between rounded-2xl border border-amber-300 bg-amber-50 p-4 text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200"
         >
           <span className="font-medium">
             {pending.length} chore{pending.length === 1 ? "" : "s"} waiting for approval
@@ -33,11 +33,11 @@ export default async function DashboardHome() {
       )}
 
       <section>
-        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
+        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
           Balances
         </h2>
         {earnersWithBalances.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-500">
+          <p className="rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
             No kids yet. Add one from the Kids tab.
           </p>
         ) : (
@@ -45,7 +45,7 @@ export default async function DashboardHome() {
             {earnersWithBalances.map((earner) => (
               <li
                 key={earner.id}
-                className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-4"
+                className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
               >
                 <div className="flex items-center gap-3">
                   <span
@@ -54,12 +54,12 @@ export default async function DashboardHome() {
                   />
                   <span className="font-medium">{earner.name}</span>
                   {earner.isParent && (
-                    <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold uppercase text-slate-600">
+                    <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold uppercase text-slate-600 dark:bg-slate-700 dark:text-slate-300">
                       Parent
                     </span>
                   )}
                 </div>
-                <span className="font-semibold text-emerald-600">
+                <span className="font-semibold text-emerald-600 dark:text-emerald-400">
                   {formatCents(earner.balanceCents)}
                 </span>
               </li>
