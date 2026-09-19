@@ -39,19 +39,19 @@ export default async function KidHome() {
       </section>
 
       {bounties.length > 0 && (
-        <section className="rounded-2xl border border-amber-300 bg-amber-50 p-4">
-          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-amber-800">
+        <section className="rounded-2xl border border-amber-300 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950">
+          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-amber-800 dark:text-amber-300">
             🎯 Bounties
           </h2>
           <ul className="flex flex-col gap-2">
             {bounties.map((bounty) => (
               <li
                 key={bounty.id}
-                className="flex items-center justify-between rounded-2xl border border-amber-200 bg-white p-4"
+                className="flex items-center justify-between rounded-2xl border border-amber-200 bg-white p-4 dark:border-amber-900 dark:bg-slate-900"
               >
                 <div>
                   <p className="font-medium">{bounty.title}</p>
-                  <p className="text-lg font-bold text-amber-700">{formatCents(bounty.valueCents)}</p>
+                  <p className="text-lg font-bold text-amber-700 dark:text-amber-400">{formatCents(bounty.valueCents)}</p>
                 </div>
                 <form
                   action={async () => {
@@ -61,7 +61,7 @@ export default async function KidHome() {
                 >
                   <button
                     type="submit"
-                    className="rounded-xl bg-amber-600 px-4 py-2 font-semibold text-white"
+                    className="rounded-xl bg-amber-600 px-4 py-2 font-semibold text-white dark:bg-amber-700"
                   >
                     Claim it!
                   </button>
@@ -73,11 +73,11 @@ export default async function KidHome() {
       )}
 
       <section>
-        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
+        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
           Today&apos;s chores
         </h2>
         {dueToday.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-500">
+          <p className="rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
             Nothing due today. Nice!
           </p>
         ) : (
@@ -85,13 +85,13 @@ export default async function KidHome() {
             {dueToday.map(({ chore, occurrenceDate }) => (
               <li
                 key={`${chore.id}:${occurrenceDate}`}
-                className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-4"
+                className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
               >
                 <div>
                   <p className="font-medium">{chore.title}</p>
                   <div className="mt-1 flex items-center gap-2">
-                    <p className="text-sm text-slate-500">{formatCents(chore.valueCents)}</p>
-                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">
+                    <p className="text-sm text-slate-500 dark:text-slate-400">{formatCents(chore.valueCents)}</p>
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500 dark:bg-slate-800 dark:text-slate-400">
                       {scheduleLabel(chore)}
                     </span>
                   </div>
@@ -104,7 +104,7 @@ export default async function KidHome() {
                 >
                   <button
                     type="submit"
-                    className="rounded-xl bg-indigo-600 px-4 py-2 font-semibold text-white"
+                    className="rounded-xl bg-indigo-600 px-4 py-2 font-semibold text-white dark:bg-indigo-700"
                   >
                     Done!
                   </button>
@@ -116,21 +116,21 @@ export default async function KidHome() {
       </section>
 
       {catchUp.length > 0 && (
-        <section className="rounded-2xl border border-sky-300 bg-sky-50 p-4">
-          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-sky-800">
+        <section className="rounded-2xl border border-sky-300 bg-sky-50 p-4 dark:border-sky-800 dark:bg-sky-950">
+          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-sky-800 dark:text-sky-300">
             ⏰ Catch up on chores you missed
           </h2>
           <ul className="flex flex-col gap-2">
             {catchUp.map(({ chore, occurrenceDate }) => (
               <li
                 key={`${chore.id}:${occurrenceDate}`}
-                className="flex items-center justify-between rounded-2xl border border-sky-200 bg-white p-4"
+                className="flex items-center justify-between rounded-2xl border border-sky-200 bg-white p-4 dark:border-sky-900 dark:bg-slate-900"
               >
                 <div>
                   <p className="font-medium">{chore.title}</p>
                   <div className="mt-1 flex items-center gap-2">
-                    <p className="text-sm text-slate-500">{formatCents(chore.valueCents)}</p>
-                    <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-700">
+                    <p className="text-sm text-slate-500 dark:text-slate-400">{formatCents(chore.valueCents)}</p>
+                    <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-700 dark:bg-sky-900 dark:text-sky-300">
                       {occurrenceDayLabel(occurrenceDate, timezone)}
                     </span>
                   </div>
@@ -143,7 +143,7 @@ export default async function KidHome() {
                 >
                   <button
                     type="submit"
-                    className="rounded-xl bg-sky-600 px-4 py-2 font-semibold text-white"
+                    className="rounded-xl bg-sky-600 px-4 py-2 font-semibold text-white dark:bg-sky-700"
                   >
                     Done!
                   </button>
@@ -156,14 +156,14 @@ export default async function KidHome() {
 
       {taken.length > 0 && (
         <section>
-          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
+          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
             Already done this week
           </h2>
           <ul className="flex flex-col gap-2">
             {taken.map(({ chore, occurrenceDate, claim }) => (
               <li
                 key={`${chore.id}:${occurrenceDate}`}
-                className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500"
+                className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400"
               >
                 <span className="flex items-center gap-2">
                   <span className="h-2 w-2 rounded-full" style={{ backgroundColor: claim.earnerColor }} />
@@ -181,17 +181,17 @@ export default async function KidHome() {
 
       {pending.length > 0 && (
         <section>
-          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
+          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
             Waiting for approval
           </h2>
           <ul className="flex flex-col gap-2">
             {pending.map((c) => (
               <li
                 key={c.id}
-                className="flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm"
+                className="flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm dark:border-amber-900 dark:bg-amber-950"
               >
                 <span>{c.choreTitle}</span>
-                <span className="text-amber-700">{formatCents(c.valueCents)}</span>
+                <span className="text-amber-700 dark:text-amber-400">{formatCents(c.valueCents)}</span>
               </li>
             ))}
           </ul>
@@ -200,17 +200,17 @@ export default async function KidHome() {
 
       {completedBounties.length > 0 && (
         <section>
-          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
+          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
             Bounties you&apos;ve crushed
           </h2>
           <ul className="flex flex-col gap-2">
             {completedBounties.map((c) => (
               <li
                 key={c.id}
-                className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500"
+                className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400"
               >
                 <span>🎯 {c.choreTitle}</span>
-                <span className="font-medium text-slate-700">{formatCents(c.valueCents)}</span>
+                <span className="font-medium text-slate-700 dark:text-slate-300">{formatCents(c.valueCents)}</span>
               </li>
             ))}
           </ul>
@@ -218,7 +218,7 @@ export default async function KidHome() {
       )}
 
       <section>
-        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
+        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
           Family leaderboard
         </h2>
         <ul className="flex flex-col gap-2">
@@ -227,16 +227,16 @@ export default async function KidHome() {
               key={kid.id}
               className={`flex items-center justify-between rounded-xl border px-4 py-3 text-sm ${
                 kid.id === session.kid.id
-                  ? "border-indigo-300 bg-indigo-50"
-                  : "border-slate-200 bg-white"
+                  ? "border-indigo-300 bg-indigo-50 dark:border-indigo-800 dark:bg-indigo-950"
+                  : "border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
               }`}
             >
               <span className="flex items-center gap-2">
-                <span className="text-slate-400">#{i + 1}</span>
+                <span className="text-slate-400 dark:text-slate-500">#{i + 1}</span>
                 <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: kid.color }} />
                 {kid.name}
                 {kid.isParent && (
-                  <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold uppercase text-slate-600">
+                  <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold uppercase text-slate-600 dark:bg-slate-700 dark:text-slate-300">
                     Parent
                   </span>
                 )}

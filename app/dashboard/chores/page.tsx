@@ -37,29 +37,29 @@ export default async function ChoresPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="rounded-2xl border border-amber-300 bg-amber-50 p-4">
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-amber-800">
+      <section className="rounded-2xl border border-amber-300 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950">
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-amber-800 dark:text-amber-300">
           🎯 Bounties
         </h2>
         {openBounties.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-amber-300 bg-white p-4 text-sm text-slate-500">
+          <p className="rounded-2xl border border-dashed border-amber-300 bg-white p-4 text-sm text-slate-500 dark:border-amber-800 dark:bg-slate-900 dark:text-slate-400">
             No open bounties. Post one below.
           </p>
         ) : (
           <ul className="flex flex-col gap-2">
             {openBounties.map(({ bounty, claim }) => (
-              <li key={bounty.id} className="rounded-2xl border border-amber-200 bg-white p-4">
+              <li key={bounty.id} className="rounded-2xl border border-amber-200 bg-white p-4 dark:border-amber-900 dark:bg-slate-900">
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className={`font-medium ${bounty.active ? "" : "text-slate-400 line-through"}`}>
+                    <p className={`font-medium ${bounty.active ? "" : "text-slate-400 line-through dark:text-slate-600"}`}>
                       {bounty.title}
                     </p>
-                    <p className="text-sm text-slate-500">
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
                       {formatCents(bounty.valueCents)} ·{" "}
                       {bounty.assignedKidId ? kidNameById.get(bounty.assignedKidId) ?? "unknown kid" : "anyone"}
                     </p>
                     {claim && (
-                      <p className="mt-1 text-sm text-amber-700">
+                      <p className="mt-1 text-sm text-amber-700 dark:text-amber-400">
                         Claimed by {claim.earnerName} · awaiting approval
                       </p>
                     )}
@@ -71,7 +71,7 @@ export default async function ChoresPage() {
                         await setChoreActive(bounty.id, !bounty.active);
                       }}
                     >
-                      <button type="submit" className="text-indigo-600">
+                      <button type="submit" className="text-indigo-600 dark:text-indigo-400">
                         {bounty.active ? "Pause" : "Resume"}
                       </button>
                     </form>
@@ -81,7 +81,7 @@ export default async function ChoresPage() {
                         await deleteChore(bounty.id);
                       }}
                     >
-                      <button type="submit" className="text-red-500">
+                      <button type="submit" className="text-red-500 dark:text-red-400">
                         Delete
                       </button>
                     </form>
@@ -93,7 +93,7 @@ export default async function ChoresPage() {
         )}
 
         <details className="mt-4">
-          <summary className="cursor-pointer text-sm font-semibold text-amber-800">
+          <summary className="cursor-pointer text-sm font-semibold text-amber-800 dark:text-amber-300">
             + New bounty
           </summary>
           <form action={createChore} className="mt-3 flex flex-col gap-3">
@@ -102,7 +102,7 @@ export default async function ChoresPage() {
               name="title"
               placeholder="Bounty (e.g. Clean the garage)"
               required
-              className="rounded-xl border border-slate-300 px-4 py-3 text-base"
+              className="rounded-xl border border-slate-300 px-4 py-3 text-base dark:border-slate-700 dark:bg-slate-900"
             />
             <input
               name="value"
@@ -111,12 +111,12 @@ export default async function ChoresPage() {
               min="0.25"
               placeholder="Value in dollars"
               required
-              className="rounded-xl border border-slate-300 px-4 py-3 text-base"
+              className="rounded-xl border border-slate-300 px-4 py-3 text-base dark:border-slate-700 dark:bg-slate-900"
             />
             <select
               name="assignedKidId"
               defaultValue="any"
-              className="rounded-xl border border-slate-300 px-4 py-3 text-base"
+              className="rounded-xl border border-slate-300 px-4 py-3 text-base dark:border-slate-700 dark:bg-slate-900"
             >
               <option value="any">Anyone (first to do it)</option>
               {kidRows.map((kid) => (
@@ -127,7 +127,7 @@ export default async function ChoresPage() {
             </select>
             <button
               type="submit"
-              className="rounded-xl bg-amber-600 px-4 py-3 font-semibold text-white"
+              className="rounded-xl bg-amber-600 px-4 py-3 font-semibold text-white dark:bg-amber-700"
             >
               Post bounty
             </button>
@@ -136,19 +136,19 @@ export default async function ChoresPage() {
 
         {doneBounties.length > 0 && (
           <div className="mt-4">
-            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-amber-800/70">
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-amber-800/70 dark:text-amber-400/70">
               Completed bounties
             </h3>
             <ul className="flex flex-col gap-1">
               {doneBounties.map(({ bounty, claim }) => (
                 <li
                   key={bounty.id}
-                  className="flex items-center justify-between rounded-xl bg-white/60 px-3 py-2 text-sm text-slate-500"
+                  className="flex items-center justify-between rounded-xl bg-white/60 px-3 py-2 text-sm text-slate-500 dark:bg-slate-900/60 dark:text-slate-400"
                 >
                   <span>
                     ✓ {bounty.title} · {claim?.earnerName}
                   </span>
-                  <span className="font-medium text-slate-700">{formatCents(bounty.valueCents)}</span>
+                  <span className="font-medium text-slate-700 dark:text-slate-300">{formatCents(bounty.valueCents)}</span>
                 </li>
               ))}
             </ul>
@@ -157,11 +157,11 @@ export default async function ChoresPage() {
       </section>
 
       <section>
-        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
+        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
           Chores
         </h2>
         {choreRows.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-500">
+          <p className="rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
             No chores yet. Add one below.
           </p>
         ) : (
@@ -171,14 +171,14 @@ export default async function ChoresPage() {
               return (
                 <li
                   key={chore.id}
-                  className="rounded-2xl border border-slate-200 bg-white p-4"
+                  className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
                 >
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className={`font-medium ${chore.active ? "" : "text-slate-400 line-through"}`}>
+                      <p className={`font-medium ${chore.active ? "" : "text-slate-400 line-through dark:text-slate-600"}`}>
                         {chore.title}
                       </p>
-                      <p className="text-sm text-slate-500">
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
                         {formatCents(chore.valueCents)} · {scheduleLabel(chore)} ·{" "}
                         {chore.assignedKidId ? kidNameById.get(chore.assignedKidId) ?? "unknown kid" : "anyone"}
                       </p>
@@ -190,7 +190,7 @@ export default async function ChoresPage() {
                           await setChoreActive(chore.id, !chore.active);
                         }}
                       >
-                        <button type="submit" className="text-indigo-600">
+                        <button type="submit" className="text-indigo-600 dark:text-indigo-400">
                           {chore.active ? "Pause" : "Resume"}
                         </button>
                       </form>
@@ -200,7 +200,7 @@ export default async function ChoresPage() {
                           await deleteChore(chore.id);
                         }}
                       >
-                        <button type="submit" className="text-red-500">
+                        <button type="submit" className="text-red-500 dark:text-red-400">
                           Delete
                         </button>
                       </form>
@@ -209,7 +209,7 @@ export default async function ChoresPage() {
 
                   {chore.active &&
                     (slots.length === 0 ? (
-                      <p className="mt-2 text-xs text-slate-400">Not due yet this week</p>
+                      <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">Not due yet this week</p>
                     ) : (
                       <ul className="mt-2 flex flex-col gap-1.5">
                         {slots.map(({ occurrenceDate, claim }) => {
@@ -217,7 +217,7 @@ export default async function ChoresPage() {
                           return (
                             <li key={occurrenceDate}>
                               {claim ? (
-                                <p className="rounded-xl bg-emerald-50 px-3 py-1.5 text-sm text-emerald-700">
+                                <p className="rounded-xl bg-emerald-50 px-3 py-1.5 text-sm text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">
                                   ✓ {dayLabel ? `${dayLabel} — ` : ""}
                                   {claim.earnerName}
                                   {claim.status === "pending" ? " · awaiting approval" : ""}
@@ -227,13 +227,13 @@ export default async function ChoresPage() {
                                   <input type="hidden" name="choreId" value={chore.id} />
                                   <input type="hidden" name="occurrenceDate" value={occurrenceDate} />
                                   {dayLabel && (
-                                    <span className="w-10 shrink-0 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                                    <span className="w-10 shrink-0 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
                                       {dayLabel}
                                     </span>
                                   )}
                                   <select
                                     name="earnerId"
-                                    className="flex-1 rounded-xl border border-slate-300 px-3 py-1.5 text-sm"
+                                    className="flex-1 rounded-xl border border-slate-300 px-3 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-900"
                                   >
                                     {earners.map((e) => (
                                       <option key={e.id} value={e.id}>
@@ -243,7 +243,7 @@ export default async function ChoresPage() {
                                   </select>
                                   <button
                                     type="submit"
-                                    className="rounded-xl bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white"
+                                    className="rounded-xl bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white dark:bg-indigo-700"
                                   >
                                     Log done
                                   </button>
@@ -261,8 +261,8 @@ export default async function ChoresPage() {
         )}
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-4">
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
           Add a chore
         </h2>
         <form action={createChore} className="flex flex-col gap-3">
@@ -270,7 +270,7 @@ export default async function ChoresPage() {
             name="title"
             placeholder="Chore (e.g. Take out trash)"
             required
-            className="rounded-xl border border-slate-300 px-4 py-3 text-base"
+            className="rounded-xl border border-slate-300 px-4 py-3 text-base dark:border-slate-700 dark:bg-slate-900"
           />
           <input
             name="value"
@@ -279,11 +279,11 @@ export default async function ChoresPage() {
             min="0.25"
             placeholder="Value in dollars"
             required
-            className="rounded-xl border border-slate-300 px-4 py-3 text-base"
+            className="rounded-xl border border-slate-300 px-4 py-3 text-base dark:border-slate-700 dark:bg-slate-900"
           />
           <select
             name="recurrence"
-            className="rounded-xl border border-slate-300 px-4 py-3 text-base"
+            className="rounded-xl border border-slate-300 px-4 py-3 text-base dark:border-slate-700 dark:bg-slate-900"
             defaultValue="once"
           >
             <option value="once">One-time</option>
@@ -300,7 +300,7 @@ export default async function ChoresPage() {
           </div>
           <select
             name="assignedKidId"
-            className="rounded-xl border border-slate-300 px-4 py-3 text-base"
+            className="rounded-xl border border-slate-300 px-4 py-3 text-base dark:border-slate-700 dark:bg-slate-900"
             defaultValue="any"
           >
             <option value="any">Anyone (first to do it)</option>
@@ -319,11 +319,11 @@ export default async function ChoresPage() {
         </form>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-4">
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
           Backup &amp; restore
         </h2>
-        <p className="mb-3 text-sm text-slate-500">
+        <p className="mb-3 text-sm text-slate-500 dark:text-slate-400">
           Save your chore setup, or restore it after a rebuild.
         </p>
         <ChoreDataTransfer />

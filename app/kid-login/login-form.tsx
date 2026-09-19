@@ -54,7 +54,7 @@ export default function KidLoginForm() {
 
       {step === "code" && (
         <form onSubmit={submitCode} className="flex w-full max-w-xs flex-col gap-3">
-          <label className="text-center text-sm text-slate-500">
+          <label className="text-center text-sm text-slate-500 dark:text-slate-400">
             Enter your family code
           </label>
           <input
@@ -63,7 +63,7 @@ export default function KidLoginForm() {
             maxLength={6}
             required
             autoFocus
-            className="rounded-xl border border-slate-300 px-4 py-4 text-center text-2xl tracking-[0.3em]"
+            className="rounded-xl border border-slate-300 px-4 py-4 text-center text-2xl tracking-[0.3em] dark:border-slate-700 dark:bg-slate-900"
           />
           {error && <p className="text-center text-sm text-red-500">{error}</p>}
           <button
@@ -78,7 +78,7 @@ export default function KidLoginForm() {
 
       {step === "pick" && (
         <div className="flex w-full max-w-xs flex-col gap-3">
-          <p className="text-center text-sm text-slate-500">Who are you?</p>
+          <p className="text-center text-sm text-slate-500 dark:text-slate-400">Who are you?</p>
           {kids.map((kid) => (
             <button
               key={kid.id}
@@ -87,7 +87,7 @@ export default function KidLoginForm() {
                 setStep("pin");
                 setError("");
               }}
-              className="flex items-center gap-3 rounded-xl border border-slate-300 bg-white px-4 py-4 text-left text-lg font-medium"
+              className="flex items-center gap-3 rounded-xl border border-slate-300 bg-white px-4 py-4 text-left text-lg font-medium dark:border-slate-700 dark:bg-slate-900"
             >
               <span className="h-4 w-4 rounded-full" style={{ backgroundColor: kid.color }} />
               {kid.name}
@@ -98,7 +98,7 @@ export default function KidLoginForm() {
 
       {step === "pin" && selectedKid && (
         <form onSubmit={submitPin} className="flex w-full max-w-xs flex-col gap-3">
-          <p className="text-center text-sm text-slate-500">
+          <p className="text-center text-sm text-slate-500 dark:text-slate-400">
             Enter {selectedKid.name}&apos;s PIN
           </p>
           <input
@@ -109,7 +109,7 @@ export default function KidLoginForm() {
             maxLength={6}
             required
             autoFocus
-            className="rounded-xl border border-slate-300 px-4 py-4 text-center text-2xl tracking-[0.3em]"
+            className="rounded-xl border border-slate-300 px-4 py-4 text-center text-2xl tracking-[0.3em] dark:border-slate-700 dark:bg-slate-900"
           />
           {error && <p className="text-center text-sm text-red-500">{error}</p>}
           <button
@@ -122,14 +122,14 @@ export default function KidLoginForm() {
           <button
             type="button"
             onClick={() => setStep("pick")}
-            className="text-sm text-slate-400"
+            className="text-sm text-slate-400 dark:text-slate-500"
           >
             ← back
           </button>
         </form>
       )}
 
-      <Link href="/" className="text-sm text-slate-400">
+      <Link href="/" className="text-sm text-slate-400 dark:text-slate-500">
         ← home
       </Link>
     </main>
