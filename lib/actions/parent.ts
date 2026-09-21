@@ -94,6 +94,40 @@ export async function createChore(formData: FormData) {
   revalidatePath("/dashboard/chores");
 }
 
+// Edits value, assignee, and (for weekly chores) which days it's scheduled on.
+// Recurrence type itself isn't editable — switch that by deleting and recreating.
+// Already-locked-in completions are unaffected (their value is captured at
+// completion time, not read live from the chore), so editing a chore's price
+// never changes what's already been earned.
+export async function updateChore(formData: FormData) {
+  const parentUserId = await requireParentUserId();
+  const choreId = String(formData.get("choreId") ?? "");
+  const valueCents = dollarsToCents(String(formData.get("value") ?? "0"));
+  const assignedKidIdRaw = String(formData.get("assignedKidId") ?? "any");
+  const assignedKidId = assignedKidIdRaw === "any" ? null : assignedKidIdRaw;
+  const daysOfWeek = formData.getAll("daysOfWeek").map(String).join(",") || null;
+
+  if (valueCents <= 0) throw new Error("Value must be greater than 0");
+
+  const db = getDb();
+  const [chore] = await db
+    .select()
+    .from(chores)
+    .where(and(eq(chores.id, choreId), eq(chores.parentUserId, parentUserId)))
+    .limit(1);
+  if (!chore) throw new Error("Not found");
+
+  await db
+    .update(chores)
+    .set({
+      valueCents,
+      assignedKidId,
+      daysOfWeek: chore.recurrence === "weekly" ? daysOfWeek : chore.daysOfWeek,
+    })
+    .where(and(eq(chores.id, choreId), eq(chores.parentUserId, parentUserId)));
+  revalidatePath("/dashboard/chores");
+}
+
 export async function setChoreActive(choreId: string, active: boolean) {
   const parentUserId = await requireParentUserId();
   const db = getDb();
@@ -216,6 +250,9 @@ export async function logCompletionFor(formData: FormData) {
       occurrenceDate,
       status: "approved",
       reviewedAt: new Date(),
+      // Locked in now, at the chore's current value — immune to the chore being
+      // edited or even deleted later.
+      valueCents: chore.valueCents,
     })
     .onConflictDoUpdate({
       target: [completions.choreId, completions.occurrenceDate],
@@ -225,6 +262,7 @@ export async function logCompletionFor(formData: FormData) {
         status: "approved",
         completedAt: new Date(),
         reviewedAt: new Date(),
+        valueCents: chore.valueCents,
       },
     });
 

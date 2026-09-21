@@ -74,6 +74,9 @@ export async function completeChore(choreId: string, occurrenceDate?: string) {
       choreId: chore.id,
       kidId: session.kid.id,
       occurrenceDate: target,
+      // Locked in now, at the chore's current value — immune to the chore being
+      // edited or even deleted later.
+      valueCents: chore.valueCents,
     })
     .onConflictDoUpdate({
       target: [completions.choreId, completions.occurrenceDate],
@@ -86,6 +89,7 @@ export async function completeChore(choreId: string, occurrenceDate?: string) {
         status: "pending",
         completedAt: new Date(),
         reviewedAt: null,
+        valueCents: chore.valueCents,
       },
     });
 

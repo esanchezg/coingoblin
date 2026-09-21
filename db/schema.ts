@@ -52,6 +52,9 @@ export const completions = pgTable(
     id: uuid("id").defaultRandom().primaryKey(),
     choreId: uuid("chore_id").notNull(),
     kidId: uuid("kid_id").notNull(),
+    // Captured from the chore at the moment of completion, so balances stay
+    // correct forever even if the chore is later edited or deleted entirely.
+    valueCents: integer("value_cents").notNull().default(0),
     // The date (YYYY-MM-DD) this occurrence is for. Fixed sentinel for "once" chores
     // so the unique index below caps them at a single completion ever.
     occurrenceDate: text("occurrence_date").notNull(),

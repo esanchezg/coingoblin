@@ -1,15 +1,17 @@
 import { auth } from "@clerk/nextjs/server";
 import { markPaid } from "@/lib/actions/parent";
 import { formatCents } from "@/lib/money";
-import { getEarnersWithBalances, getPayoutHistory } from "@/lib/queries";
+import { formatDateInZone } from "@/lib/date";
+import { getEarnersWithBalances, getHouseholdTimezone, getPayoutHistory } from "@/lib/queries";
 
 export default async function PayoutsPage() {
   const { userId } = await auth();
   if (!userId) return null;
 
-  const [earnersWithBalances, history] = await Promise.all([
+  const [earnersWithBalances, history, timezone] = await Promise.all([
     getEarnersWithBalances(userId),
     getPayoutHistory(userId),
+    getHouseholdTimezone(userId),
   ]);
   // Paying yourself doesn't make sense — this list is real kids only.
   const kidsWithBalances = earnersWithBalances.filter((e) => !e.isParent);
@@ -84,10 +86,15 @@ export default async function PayoutsPage() {
                 key={p.id}
                 className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm dark:border-slate-800 dark:bg-slate-900"
               >
-                <span>
-                  {p.kidName}
-                  {p.note ? ` · ${p.note}` : ""}
-                </span>
+                <div>
+                  <span>
+                    {p.kidName}
+                    {p.note ? ` · ${p.note}` : ""}
+                  </span>
+                  <p className="text-xs text-slate-400 dark:text-slate-500">
+                    {formatDateInZone(p.createdAt, timezone)}
+                  </p>
+                </div>
                 <span className="font-medium">{formatCents(p.amountCents)}</span>
               </li>
             ))}

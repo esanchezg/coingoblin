@@ -112,13 +112,15 @@ async function balancesForKids(kidIds: string[]) {
   for (const id of kidIds) balances.set(id, 0);
   if (kidIds.length === 0) return balances;
 
+  // Value is read directly off the completion (locked in at the moment it was
+  // done), not the chore — so a chore being edited or even deleted afterward can
+  // never change what's already been earned.
   const approved = await db
     .select({
       kidId: completions.kidId,
-      valueCents: chores.valueCents,
+      valueCents: completions.valueCents,
     })
     .from(completions)
-    .innerJoin(chores, eq(completions.choreId, chores.id))
     .where(and(inArray(completions.kidId, kidIds), eq(completions.status, "approved")));
 
   for (const row of approved) {
@@ -152,7 +154,7 @@ export async function getPendingCompletions(parentUserId: string) {
       id: completions.id,
       completedAt: completions.completedAt,
       choreTitle: chores.title,
-      valueCents: chores.valueCents,
+      valueCents: completions.valueCents,
       isBounty: chores.isBounty,
       kidName: kids.name,
       kidColor: kids.color,
@@ -352,7 +354,7 @@ export async function getKidCompletions(kidId: string) {
       status: completions.status,
       completedAt: completions.completedAt,
       choreTitle: chores.title,
-      valueCents: chores.valueCents,
+      valueCents: completions.valueCents,
       isBounty: chores.isBounty,
     })
     .from(completions)

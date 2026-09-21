@@ -1,5 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
-import { createChore, deleteChore, logCompletionFor, setChoreActive } from "@/lib/actions/parent";
+import { createChore, deleteChore, logCompletionFor, setChoreActive, updateChore } from "@/lib/actions/parent";
 import { formatCents } from "@/lib/money";
 import {
   getBountiesForParent,
@@ -8,7 +8,7 @@ import {
   getEarnersForParent,
   getHouseholdTimezone,
 } from "@/lib/queries";
-import { DAY_LABELS, occurrenceDayLabel, scheduleLabel } from "@/lib/chore-schedule";
+import { DAY_LABELS, occurrenceDayLabel, parseDaysOfWeek, scheduleLabel } from "@/lib/chore-schedule";
 import { getOrCreateParentEarner } from "@/lib/parent-earner";
 import ChoreDataTransfer from "./data-transfer";
 
@@ -87,6 +87,42 @@ export default async function ChoresPage() {
                     </form>
                   </div>
                 </div>
+
+                <details className="mt-2">
+                  <summary className="cursor-pointer text-sm text-amber-700 dark:text-amber-400">
+                    Edit
+                  </summary>
+                  <form action={updateChore} className="mt-2 flex flex-col gap-2 sm:flex-row">
+                    <input type="hidden" name="choreId" value={bounty.id} />
+                    <input
+                      name="value"
+                      type="number"
+                      step="0.25"
+                      min="0.25"
+                      defaultValue={bounty.valueCents / 100}
+                      required
+                      className="flex-1 rounded-xl border border-amber-300 px-3 py-2 text-sm dark:border-amber-800 dark:bg-slate-900"
+                    />
+                    <select
+                      name="assignedKidId"
+                      defaultValue={bounty.assignedKidId ?? "any"}
+                      className="flex-1 rounded-xl border border-amber-300 px-3 py-2 text-sm dark:border-amber-800 dark:bg-slate-900"
+                    >
+                      <option value="any">Anyone (first to do it)</option>
+                      {kidRows.map((kid) => (
+                        <option key={kid.id} value={kid.id}>
+                          {kid.name} only
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="submit"
+                      className="rounded-xl bg-amber-600 px-3 py-2 text-sm font-semibold text-white dark:bg-amber-700"
+                    >
+                      Save
+                    </button>
+                  </form>
+                </details>
               </li>
             ))}
           </ul>
@@ -206,6 +242,57 @@ export default async function ChoresPage() {
                       </form>
                     </div>
                   </div>
+
+                  <details className="mt-2">
+                    <summary className="cursor-pointer text-sm text-indigo-600 dark:text-indigo-400">
+                      Edit
+                    </summary>
+                    <form action={updateChore} className="mt-2 flex flex-col gap-3">
+                      <input type="hidden" name="choreId" value={chore.id} />
+                      <input
+                        name="value"
+                        type="number"
+                        step="0.25"
+                        min="0.25"
+                        defaultValue={chore.valueCents / 100}
+                        required
+                        className="rounded-xl border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"
+                      />
+                      {chore.recurrence === "weekly" && (
+                        <div className="flex flex-wrap gap-2">
+                          {DAY_LABELS.map((label, i) => (
+                            <label key={label} className="flex items-center gap-1 text-sm">
+                              <input
+                                type="checkbox"
+                                name="daysOfWeek"
+                                value={i}
+                                defaultChecked={parseDaysOfWeek(chore.daysOfWeek).includes(i)}
+                              />
+                              {label}
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                      <select
+                        name="assignedKidId"
+                        defaultValue={chore.assignedKidId ?? "any"}
+                        className="rounded-xl border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"
+                      >
+                        <option value="any">Anyone (first to do it)</option>
+                        {kidRows.map((kid) => (
+                          <option key={kid.id} value={kid.id}>
+                            {kid.name} only
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="submit"
+                        className="rounded-xl bg-indigo-600 px-3 py-2 text-sm font-semibold text-white dark:bg-indigo-700"
+                      >
+                        Save changes
+                      </button>
+                    </form>
+                  </details>
 
                   {chore.active &&
                     (slots.length === 0 ? (
