@@ -1,7 +1,7 @@
 import { and, desc, eq, inArray, isNull, or } from "drizzle-orm";
 import { getDb } from "@/db";
 import { chores, completions, households, kids, payouts } from "@/db/schema";
-import { DEFAULT_TIMEZONE, claimableOccurrenceDates } from "@/lib/chore-schedule";
+import { DEFAULT_TIMEZONE, claimableOccurrenceDates, weekOccurrenceDates } from "@/lib/chore-schedule";
 
 function randomFamilyCode(): string {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no ambiguous chars
@@ -253,16 +253,18 @@ export async function getClaimsForOccurrences(
 
 // Expands chores into every slot they currently have open-or-claimable this week.
 // Bounties and one-time chores expand to exactly one sentinel slot, so nothing
-// downstream needs an isBounty branch.
+// downstream needs an isBounty branch. Defaults to the claimable window; pass
+// weekOccurrenceDates for a full week-to-date history regardless of claimability.
 function expandOccurrences<
   T extends { id: string; recurrence: "once" | "daily" | "weekly"; daysOfWeek: string | null; allowCatchUp?: boolean },
 >(
   choreRows: T[],
   timezone: string,
   now: Date = new Date(),
+  dateFn: (chore: T, timezone: string, now: Date) => string[] = claimableOccurrenceDates,
 ): { chore: T; occurrenceDate: string }[] {
   return choreRows.flatMap((chore) =>
-    claimableOccurrenceDates(chore, timezone, now).map((occurrenceDate) => ({ chore, occurrenceDate })),
+    dateFn(chore, timezone, now).map((occurrenceDate) => ({ chore, occurrenceDate })),
   );
 }
 
@@ -329,13 +331,16 @@ export async function getTakenChoresForKid(kidId: string, parentUserId: string) 
   return taken.sort((a, b) => b.occurrenceDate.localeCompare(a.occurrenceDate));
 }
 
-// Every open-or-claimed slot this week for the household's active recurring/
-// one-time chores, for the parent dashboard's per-day status list. Paused chores
-// contribute nothing — there's nothing claimable while a chore is paused.
+// Every slot this week (done, missed, or still open) for the household's active
+// recurring/one-time chores, for the parent dashboard's per-day status list. This
+// intentionally uses the full week-to-date window rather than the claimable one,
+// so a "no catch-up" chore's missed days stay visible here even though they're no
+// longer loggable. Paused chores contribute nothing — there's nothing due while a
+// chore is paused.
 export async function getChoreOccurrencesForParent(parentUserId: string) {
   const timezone = await getHouseholdTimezone(parentUserId);
   const choreRows = (await getChoresForParent(parentUserId)).filter((c) => c.active);
-  const slots = expandOccurrences(choreRows, timezone);
+  const slots = expandOccurrences(choreRows, timezone, new Date(), weekOccurrenceDates);
   if (slots.length === 0) return [];
 
   const claims = await getClaimsForOccurrences(

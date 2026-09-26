@@ -8,7 +8,7 @@ import {
   getEarnersForParent,
   getHouseholdTimezone,
 } from "@/lib/queries";
-import { DAY_LABELS, occurrenceDayLabel, scheduleLabel } from "@/lib/chore-schedule";
+import { DAY_LABELS, occurrenceDayLabel, scheduleLabel, todayIso } from "@/lib/chore-schedule";
 import { getOrCreateParentEarner } from "@/lib/parent-earner";
 import ChoreDataTransfer from "./data-transfer";
 import EditChoreForm from "./edit-chore-form";
@@ -224,6 +224,7 @@ export default async function ChoresPage() {
                       <ul className="mt-2 flex flex-col gap-1.5">
                         {slots.map(({ occurrenceDate, claim }) => {
                           const dayLabel = occurrenceDayLabel(occurrenceDate, timezone);
+                          const loggable = chore.allowCatchUp || occurrenceDate === todayIso(timezone);
                           return (
                             <li key={occurrenceDate}>
                               {claim ? (
@@ -231,6 +232,15 @@ export default async function ChoresPage() {
                                   ✓ {dayLabel ? `${dayLabel} — ` : ""}
                                   {claim.earnerName}
                                   {claim.status === "pending" ? " · awaiting approval" : ""}
+                                </p>
+                              ) : !loggable ? (
+                                <p className="flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-1.5 text-sm text-slate-400 dark:bg-slate-900 dark:text-slate-500">
+                                  {dayLabel && (
+                                    <span className="w-10 shrink-0 text-xs font-semibold uppercase tracking-wide">
+                                      {dayLabel}
+                                    </span>
+                                  )}
+                                  Missed — no catch-up
                                 </p>
                               ) : (
                                 <form action={logCompletionFor} className="flex items-center gap-2">
