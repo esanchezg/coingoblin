@@ -92,8 +92,15 @@ export default async function ChoresPage() {
                   <summary className="cursor-pointer text-sm text-amber-700 dark:text-amber-400">
                     Edit
                   </summary>
-                  <form action={updateChore} className="mt-2 flex flex-col gap-2 sm:flex-row">
+                  <form action={updateChore} className="mt-2 flex flex-col gap-2">
                     <input type="hidden" name="choreId" value={bounty.id} />
+                    <input
+                      name="title"
+                      defaultValue={bounty.title}
+                      required
+                      className="rounded-xl border border-amber-300 px-3 py-2 text-sm dark:border-amber-800 dark:bg-slate-900"
+                    />
+                    <div className="flex flex-col gap-2 sm:flex-row">
                     <input
                       name="value"
                       type="number"
@@ -121,6 +128,7 @@ export default async function ChoresPage() {
                     >
                       Save
                     </button>
+                    </div>
                   </form>
                 </details>
               </li>
@@ -250,6 +258,12 @@ export default async function ChoresPage() {
                     <form action={updateChore} className="mt-2 flex flex-col gap-3">
                       <input type="hidden" name="choreId" value={chore.id} />
                       <input
+                        name="title"
+                        defaultValue={chore.title}
+                        required
+                        className="rounded-xl border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"
+                      />
+                      <input
                         name="value"
                         type="number"
                         step="0.25"
@@ -258,21 +272,28 @@ export default async function ChoresPage() {
                         required
                         className="rounded-xl border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"
                       />
-                      {chore.recurrence === "weekly" && (
-                        <div className="flex flex-wrap gap-2">
-                          {DAY_LABELS.map((label, i) => (
-                            <label key={label} className="flex items-center gap-1 text-sm">
-                              <input
-                                type="checkbox"
-                                name="daysOfWeek"
-                                value={i}
-                                defaultChecked={parseDaysOfWeek(chore.daysOfWeek).includes(i)}
-                              />
-                              {label}
-                            </label>
-                          ))}
-                        </div>
-                      )}
+                      <select
+                        name="recurrence"
+                        defaultValue={chore.recurrence}
+                        className="rounded-xl border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"
+                      >
+                        <option value="once">One-time</option>
+                        <option value="daily">Every day</option>
+                        <option value="weekly">Specific days</option>
+                      </select>
+                      <div className="flex flex-wrap gap-2">
+                        {DAY_LABELS.map((label, i) => (
+                          <label key={label} className="flex items-center gap-1 text-sm">
+                            <input
+                              type="checkbox"
+                              name="daysOfWeek"
+                              value={i}
+                              defaultChecked={parseDaysOfWeek(chore.daysOfWeek).includes(i)}
+                            />
+                            {label}
+                          </label>
+                        ))}
+                      </div>
                       <select
                         name="assignedKidId"
                         defaultValue={chore.assignedKidId ?? "any"}

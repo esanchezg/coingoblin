@@ -94,19 +94,21 @@ export async function createChore(formData: FormData) {
   revalidatePath("/dashboard/chores");
 }
 
-// Edits value, assignee, and (for weekly chores) which days it's scheduled on.
-// Recurrence type itself isn't editable — switch that by deleting and recreating.
-// Already-locked-in completions are unaffected (their value is captured at
-// completion time, not read live from the chore), so editing a chore's price
-// never changes what's already been earned.
+// Edits title, value, assignee, frequency, and (for weekly chores) which days
+// it's scheduled on. Already-locked-in completions are unaffected (their value
+// is captured at completion time, not read live from the chore), so editing a
+// chore's price never changes what's already been earned; changing its
+// frequency only ever affects what's claimable from now on.
 export async function updateChore(formData: FormData) {
   const parentUserId = await requireParentUserId();
   const choreId = String(formData.get("choreId") ?? "");
+  const title = String(formData.get("title") ?? "").trim();
   const valueCents = dollarsToCents(String(formData.get("value") ?? "0"));
   const assignedKidIdRaw = String(formData.get("assignedKidId") ?? "any");
   const assignedKidId = assignedKidIdRaw === "any" ? null : assignedKidIdRaw;
   const daysOfWeek = formData.getAll("daysOfWeek").map(String).join(",") || null;
 
+  if (!title) throw new Error("Title is required");
   if (valueCents <= 0) throw new Error("Value must be greater than 0");
 
   const db = getDb();
@@ -117,12 +119,20 @@ export async function updateChore(formData: FormData) {
     .limit(1);
   if (!chore) throw new Error("Not found");
 
+  // Bounties always stay "once" — the bounty edit form doesn't offer a
+  // recurrence field at all, but guard it server-side too regardless.
+  const recurrence = chore.isBounty
+    ? "once"
+    : (String(formData.get("recurrence") ?? chore.recurrence) as "once" | "daily" | "weekly");
+
   await db
     .update(chores)
     .set({
+      title,
       valueCents,
       assignedKidId,
-      daysOfWeek: chore.recurrence === "weekly" ? daysOfWeek : chore.daysOfWeek,
+      recurrence,
+      daysOfWeek: recurrence === "weekly" ? daysOfWeek : null,
     })
     .where(and(eq(chores.id, choreId), eq(chores.parentUserId, parentUserId)));
   revalidatePath("/dashboard/chores");
