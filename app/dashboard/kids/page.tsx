@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import { createKid, deleteKid, resetKidPin } from "@/lib/actions/parent";
 import { getKidsForParent } from "@/lib/queries";
@@ -32,16 +33,24 @@ export default async function KidsPage() {
                     <span className="h-3 w-3 rounded-full" style={{ backgroundColor: kid.color }} />
                     <span className="font-medium">{kid.name}</span>
                   </div>
-                  <form
-                    action={async () => {
-                      "use server";
-                      await deleteKid(kid.id);
-                    }}
-                  >
-                    <button type="submit" className="text-sm text-red-500 dark:text-red-400">
-                      Remove
-                    </button>
-                  </form>
+                  <div className="flex items-center gap-3">
+                    <Link
+                      href={`/dashboard/kids/${kid.id}`}
+                      className="text-sm text-indigo-600 dark:text-indigo-400"
+                    >
+                      View
+                    </Link>
+                    <form
+                      action={async () => {
+                        "use server";
+                        await deleteKid(kid.id);
+                      }}
+                    >
+                      <button type="submit" className="text-sm text-red-500 dark:text-red-400">
+                        Remove
+                      </button>
+                    </form>
+                  </div>
                 </div>
 
                 <details className="mt-2">
