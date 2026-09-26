@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
@@ -9,7 +10,14 @@ export default async function Home() {
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-10 px-6 py-16">
       <div className="text-center">
-        <div className="text-5xl">🪙👺</div>
+        <Image
+          src="/goblin-hero.png"
+          alt="CoinGoblin mascot holding a coin"
+          width={160}
+          height={160}
+          priority
+          className="mx-auto rounded-3xl"
+        />
         <h1 className="mt-4 text-3xl font-bold tracking-tight">CoinGoblin</h1>
         <p className="mt-2 text-slate-600 dark:text-slate-400">Chores done. Coins earned.</p>
       </div>
