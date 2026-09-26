@@ -99,7 +99,9 @@ export async function createChore(formData: FormData) {
 // is captured at completion time, not read live from the chore), so editing a
 // chore's price never changes what's already been earned; changing its
 // frequency only ever affects what's claimable from now on.
-export async function updateChore(formData: FormData) {
+export async function updateChore(
+  formData: FormData,
+): Promise<{ ok: true } | { ok: false; error: string }> {
   const parentUserId = await requireParentUserId();
   const choreId = String(formData.get("choreId") ?? "");
   const title = String(formData.get("title") ?? "").trim();
@@ -108,8 +110,8 @@ export async function updateChore(formData: FormData) {
   const assignedKidId = assignedKidIdRaw === "any" ? null : assignedKidIdRaw;
   const daysOfWeek = formData.getAll("daysOfWeek").map(String).join(",") || null;
 
-  if (!title) throw new Error("Title is required");
-  if (valueCents <= 0) throw new Error("Value must be greater than 0");
+  if (!title) return { ok: false, error: "Title is required" };
+  if (valueCents <= 0) return { ok: false, error: "Value must be greater than 0" };
 
   const db = getDb();
   const [chore] = await db
@@ -117,7 +119,7 @@ export async function updateChore(formData: FormData) {
     .from(chores)
     .where(and(eq(chores.id, choreId), eq(chores.parentUserId, parentUserId)))
     .limit(1);
-  if (!chore) throw new Error("Not found");
+  if (!chore) return { ok: false, error: "Chore not found" };
 
   // Bounties always stay "once" — the bounty edit form doesn't offer a
   // recurrence field at all, but guard it server-side too regardless.
@@ -136,6 +138,7 @@ export async function updateChore(formData: FormData) {
     })
     .where(and(eq(chores.id, choreId), eq(chores.parentUserId, parentUserId)));
   revalidatePath("/dashboard/chores");
+  return { ok: true };
 }
 
 export async function setChoreActive(choreId: string, active: boolean) {
