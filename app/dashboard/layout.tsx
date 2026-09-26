@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { UserButton } from "@clerk/nextjs";
 import TimezoneSync from "./timezone-sync";
@@ -16,7 +17,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className="flex min-h-screen flex-col">
       <TimezoneSync />
       <header className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
-        <span className="text-lg font-bold">🪙 CoinGoblin</span>
+        <span className="flex items-center gap-2 text-lg font-bold">
+          <Image src="/goblin-hero.png" alt="" width={28} height={28} className="rounded-md" />
+          CoinGoblin
+        </span>
         <div className="flex items-center gap-3">
           <ThemeToggle />
           <UserButton />
