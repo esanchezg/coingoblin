@@ -43,6 +43,9 @@ export const chores = pgTable("chores", {
   active: boolean("active").notNull().default(true),
   // A bounty is a chore row with isBounty: true and recurrence forced to "once".
   isBounty: boolean("is_bounty").notNull().default(false),
+  // false for chores with no makeup window (e.g. "let the chickens out") — claimable
+  // only on the day they're due, never carried into the rest-of-week catch-up set.
+  allowCatchUp: boolean("allow_catch_up").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

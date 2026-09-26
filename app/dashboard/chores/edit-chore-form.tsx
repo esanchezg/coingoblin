@@ -12,6 +12,7 @@ type EditableChore = {
   recurrence: "once" | "daily" | "weekly";
   daysOfWeek: string | null;
   assignedKidId: string | null;
+  allowCatchUp: boolean;
 };
 
 export default function EditChoreForm({
@@ -96,6 +97,16 @@ export default function EditChoreForm({
                 </label>
               ))}
             </div>
+            <label className="flex items-start gap-2 text-sm">
+              <input
+                type="checkbox"
+                name="noCatchUp"
+                value="1"
+                defaultChecked={!chore.allowCatchUp}
+                className="mt-0.5"
+              />
+              <span>No catch-up — must be done same day, or it&apos;s gone</span>
+            </label>
           </>
         )}
         <select

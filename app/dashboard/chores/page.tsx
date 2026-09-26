@@ -184,6 +184,11 @@ export default async function ChoresPage() {
                       <p className="text-sm text-slate-500 dark:text-slate-400">
                         {formatCents(chore.valueCents)} · {scheduleLabel(chore)} ·{" "}
                         {chore.assignedKidId ? kidNameById.get(chore.assignedKidId) ?? "unknown kid" : "anyone"}
+                        {!chore.allowCatchUp && (
+                          <span className="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700 dark:bg-red-950 dark:text-red-400">
+                            No catch-up
+                          </span>
+                        )}
                       </p>
                     </div>
                     <div className="flex shrink-0 gap-3 text-sm">
@@ -303,6 +308,10 @@ export default async function ChoresPage() {
               </label>
             ))}
           </div>
+          <label className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-400">
+            <input type="checkbox" name="noCatchUp" value="1" className="mt-0.5" />
+            <span>No catch-up — must be done same day, or it&apos;s gone</span>
+          </label>
           <select
             name="assignedKidId"
             className="rounded-xl border border-slate-300 px-4 py-3 text-base dark:border-slate-700 dark:bg-slate-900"

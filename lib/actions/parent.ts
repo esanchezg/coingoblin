@@ -77,6 +77,7 @@ export async function createChore(formData: FormData) {
   const assignedKidIdRaw = String(formData.get("assignedKidId") ?? "any");
   const assignedKidId = assignedKidIdRaw === "any" ? null : assignedKidIdRaw;
   const daysOfWeek = formData.getAll("daysOfWeek").map(String).join(",") || null;
+  const allowCatchUp = formData.get("noCatchUp") !== "1";
 
   if (!title) throw new Error("Title is required");
   if (valueCents <= 0) throw new Error("Value must be greater than 0");
@@ -90,6 +91,7 @@ export async function createChore(formData: FormData) {
     daysOfWeek: recurrence === "weekly" ? daysOfWeek : null,
     assignedKidId,
     isBounty,
+    allowCatchUp,
   });
   revalidatePath("/dashboard/chores");
 }
@@ -109,6 +111,7 @@ export async function updateChore(
   const assignedKidIdRaw = String(formData.get("assignedKidId") ?? "any");
   const assignedKidId = assignedKidIdRaw === "any" ? null : assignedKidIdRaw;
   const daysOfWeek = formData.getAll("daysOfWeek").map(String).join(",") || null;
+  const allowCatchUp = formData.get("noCatchUp") !== "1";
 
   if (!title) return { ok: false, error: "Title is required" };
   if (valueCents <= 0) return { ok: false, error: "Value must be greater than 0" };
@@ -135,6 +138,7 @@ export async function updateChore(
       assignedKidId,
       recurrence,
       daysOfWeek: recurrence === "weekly" ? daysOfWeek : null,
+      allowCatchUp,
     })
     .where(and(eq(chores.id, choreId), eq(chores.parentUserId, parentUserId)));
   revalidatePath("/dashboard/chores");
@@ -329,6 +333,7 @@ export async function exportChores() {
       daysOfWeek: chore.daysOfWeek,
       assignedKidName: chore.assignedKidId ? kidNameById.get(chore.assignedKidId) ?? null : null,
       active: chore.active,
+      allowCatchUp: chore.allowCatchUp,
     })),
   };
 }
@@ -352,6 +357,7 @@ type ImportChoreEntry = {
   daysOfWeek: string | null;
   assignedKidName: string | null;
   active: boolean;
+  allowCatchUp: boolean;
 };
 
 function validateImportPayload(raw: unknown): { chores: ImportChoreEntry[] } | { error: string } {
@@ -401,6 +407,7 @@ function validateImportPayload(raw: unknown): { chores: ImportChoreEntry[] } | {
       daysOfWeek: (daysOfWeek as string | null) ?? null,
       assignedKidName: (assignedKidName as string | null) ?? null,
       active: entry.active !== false,
+      allowCatchUp: entry.allowCatchUp !== false,
     });
   }
 
@@ -442,6 +449,7 @@ export async function importChores(json: string) {
       daysOfWeek: entry.recurrence === "weekly" ? entry.daysOfWeek : null,
       assignedKidId,
       active: entry.active,
+      allowCatchUp: entry.allowCatchUp,
       isBounty: false,
     };
   });

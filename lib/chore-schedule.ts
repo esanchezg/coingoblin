@@ -79,9 +79,11 @@ function isoFromUtcDate(d: Date): string {
 // days the chore is actually scheduled on. Chronological, ascending. A missed day
 // stays in this set for the rest of the week and drops out once Monday arrives.
 // One-time chores/bounties are outside the week window entirely — one sentinel
-// slot, forever, until claimed.
+// slot, forever, until claimed. Chores with allowCatchUp: false skip the makeup
+// window entirely — only today's slot (if scheduled) is ever claimable, and a
+// missed day is gone for good once the day ends.
 export function claimableOccurrenceDates(
-  chore: Pick<Chore, "recurrence" | "daysOfWeek">,
+  chore: Pick<Chore, "recurrence" | "daysOfWeek"> & { allowCatchUp?: boolean },
   timezone: string,
   now: Date = new Date(),
 ): string[] {
@@ -98,7 +100,9 @@ export function claimableOccurrenceDates(
 
   const dates: string[] = [];
   for (let i = 0; i <= daysSinceMonday; i++) {
-    if (days === null || days.includes(cursor.getUTCDay())) dates.push(isoFromUtcDate(cursor));
+    const scheduledThisDay = days === null || days.includes(cursor.getUTCDay());
+    const withinWindow = chore.allowCatchUp !== false || i === daysSinceMonday;
+    if (scheduledThisDay && withinWindow) dates.push(isoFromUtcDate(cursor));
     cursor.setUTCDate(cursor.getUTCDate() + 1);
   }
   return dates;

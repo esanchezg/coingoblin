@@ -94,6 +94,11 @@ export default async function KidHome() {
                     <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500 dark:bg-slate-800 dark:text-slate-400">
                       {scheduleLabel(chore)}
                     </span>
+                    {!chore.allowCatchUp && (
+                      <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700 dark:bg-red-950 dark:text-red-400">
+                        Gone if not done today
+                      </span>
+                    )}
                   </div>
                 </div>
                 <form

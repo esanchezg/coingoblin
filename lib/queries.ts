@@ -254,7 +254,9 @@ export async function getClaimsForOccurrences(
 // Expands chores into every slot they currently have open-or-claimable this week.
 // Bounties and one-time chores expand to exactly one sentinel slot, so nothing
 // downstream needs an isBounty branch.
-function expandOccurrences<T extends { id: string; recurrence: "once" | "daily" | "weekly"; daysOfWeek: string | null }>(
+function expandOccurrences<
+  T extends { id: string; recurrence: "once" | "daily" | "weekly"; daysOfWeek: string | null; allowCatchUp?: boolean },
+>(
   choreRows: T[],
   timezone: string,
   now: Date = new Date(),
