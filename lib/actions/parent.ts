@@ -7,7 +7,7 @@ import { revalidatePath } from "next/cache";
 import { getDb } from "@/db";
 import { chores, completions, households, kids, payouts } from "@/db/schema";
 import { dollarsToCents } from "@/lib/money";
-import { claimableOccurrenceDates } from "@/lib/chore-schedule";
+import { weekOccurrenceDates } from "@/lib/chore-schedule";
 import { getOrCreateParentEarner } from "@/lib/parent-earner";
 import {
   getChoresForParent,
@@ -255,8 +255,12 @@ export async function logCompletionFor(formData: FormData) {
   if (!earner) throw new Error("Not found");
 
   const timezone = await getHouseholdTimezone(parentUserId);
-  if (!claimableOccurrenceDates(chore, timezone).includes(occurrenceDate)) {
-    throw new Error("That day isn't loggable right now");
+  // Deliberately the full week-to-date window, not the (possibly narrower)
+  // claimable window a kid is held to — the parent is asserting this firsthand,
+  // so a "no catch-up" chore's missed day is still backfillable by them even
+  // after it's no longer claimable by the kid.
+  if (!weekOccurrenceDates(chore, timezone).includes(occurrenceDate)) {
+    throw new Error("That day isn't part of this week");
   }
 
   await db

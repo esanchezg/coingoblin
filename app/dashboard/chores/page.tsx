@@ -233,15 +233,6 @@ export default async function ChoresPage() {
                                   {claim.earnerName}
                                   {claim.status === "pending" ? " · awaiting approval" : ""}
                                 </p>
-                              ) : !loggable ? (
-                                <p className="flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-1.5 text-sm text-slate-400 dark:bg-slate-900 dark:text-slate-500">
-                                  {dayLabel && (
-                                    <span className="w-10 shrink-0 text-xs font-semibold uppercase tracking-wide">
-                                      {dayLabel}
-                                    </span>
-                                  )}
-                                  Missed — no catch-up
-                                </p>
                               ) : (
                                 <form action={logCompletionFor} className="flex items-center gap-2">
                                   <input type="hidden" name="choreId" value={chore.id} />
@@ -265,7 +256,7 @@ export default async function ChoresPage() {
                                     type="submit"
                                     className="rounded-xl bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white dark:bg-indigo-700"
                                   >
-                                    Log done
+                                    {loggable ? "Log done" : "Backfill"}
                                   </button>
                                 </form>
                               )}
