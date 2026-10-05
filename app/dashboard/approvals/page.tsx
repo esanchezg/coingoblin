@@ -1,13 +1,17 @@
 import { auth } from "@clerk/nextjs/server";
 import { approveCompletion, rejectCompletion } from "@/lib/actions/parent";
+import { formatDateTimeInZone } from "@/lib/date";
 import { formatCents } from "@/lib/money";
-import { getPendingCompletions } from "@/lib/queries";
+import { getHouseholdTimezone, getPendingCompletions } from "@/lib/queries";
 
 export default async function ApprovalsPage() {
   const { userId } = await auth();
   if (!userId) return null;
 
-  const pending = await getPendingCompletions(userId);
+  const [pending, timezone] = await Promise.all([
+    getPendingCompletions(userId),
+    getHouseholdTimezone(userId),
+  ]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -35,6 +39,9 @@ export default async function ApprovalsPage() {
                   </p>
                   <p className="text-sm text-slate-500 dark:text-slate-400">
                     {item.kidName} · {formatCents(item.valueCents)}
+                  </p>
+                  <p className="text-xs text-slate-400 dark:text-slate-500">
+                    Claimed {formatDateTimeInZone(item.completedAt, timezone)}
                   </p>
                 </div>
               </div>
