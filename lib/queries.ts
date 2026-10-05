@@ -185,6 +185,72 @@ export async function getPayoutHistory(parentUserId: string) {
     .orderBy(desc(payouts.createdAt));
 }
 
+export type UnpaidBreakdownItem = {
+  id: string;
+  choreTitle: string;
+  isBounty: boolean;
+  valueCents: number;
+  completedAt: Date;
+};
+
+// Approved chores claimed since each kid's last payout — the best available
+// explanation for what their current balance is made of. Payouts don't record
+// which completions they settle (just a free-form dollar amount), so this is
+// a heuristic, not an exact ledger: the caller is expected to reconcile the
+// listed total against the kid's real balance (from getEarnersWithBalances)
+// and attribute any gap to payments that didn't line up with a chore boundary.
+// leftJoin on chores (not innerJoin) because chores can be hard-deleted while
+// their completions keep their own valueCents snapshot forever — an inner
+// join would silently drop those and understate the breakdown.
+export async function getUnpaidBreakdownForParent(
+  parentUserId: string,
+): Promise<Map<string, UnpaidBreakdownItem[]>> {
+  const db = getDb();
+  const parentKids = await getKidsForParent(parentUserId);
+  const kidIds = parentKids.map((k) => k.id);
+  const result = new Map<string, UnpaidBreakdownItem[]>();
+  for (const id of kidIds) result.set(id, []);
+  if (kidIds.length === 0) return result;
+
+  const payoutRows = await db
+    .select({ kidId: payouts.kidId, createdAt: payouts.createdAt })
+    .from(payouts)
+    .where(inArray(payouts.kidId, kidIds));
+  const lastPayoutAt = new Map<string, Date>();
+  for (const row of payoutRows) {
+    const current = lastPayoutAt.get(row.kidId);
+    if (!current || row.createdAt > current) lastPayoutAt.set(row.kidId, row.createdAt);
+  }
+
+  const rows = await db
+    .select({
+      id: completions.id,
+      kidId: completions.kidId,
+      choreTitle: chores.title,
+      isBounty: chores.isBounty,
+      valueCents: completions.valueCents,
+      completedAt: completions.completedAt,
+    })
+    .from(completions)
+    .innerJoin(kids, eq(completions.kidId, kids.id))
+    .leftJoin(chores, eq(completions.choreId, chores.id))
+    .where(and(eq(kids.parentUserId, parentUserId), eq(completions.status, "approved")))
+    .orderBy(desc(completions.completedAt));
+
+  for (const row of rows) {
+    const since = lastPayoutAt.get(row.kidId);
+    if (since && row.completedAt <= since) continue;
+    result.get(row.kidId)?.push({
+      id: row.id,
+      choreTitle: row.choreTitle ?? "(deleted chore)",
+      isBounty: row.isBounty ?? false,
+      valueCents: row.valueCents,
+      completedAt: row.completedAt,
+    });
+  }
+  return result;
+}
+
 export type ChoreClaim = {
   completionId: string;
   earnerId: string;

@@ -179,6 +179,7 @@ export async function approveCompletion(completionId: string) {
     .where(eq(completions.id, completionId));
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/approvals");
+  revalidatePath("/dashboard/payouts");
 }
 
 export async function rejectCompletion(completionId: string) {
@@ -198,6 +199,7 @@ export async function rejectCompletion(completionId: string) {
     .where(eq(completions.id, completionId));
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/approvals");
+  revalidatePath("/dashboard/payouts");
 }
 
 export async function markPaid(formData: FormData) {
@@ -289,6 +291,7 @@ export async function logCompletionFor(formData: FormData) {
 
   revalidatePath("/dashboard/chores");
   revalidatePath("/dashboard");
+  revalidatePath("/dashboard/payouts");
 }
 
 // Records the parent's browser timezone the first time it's seen. Only ever fills
