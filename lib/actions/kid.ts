@@ -7,8 +7,13 @@ import { revalidatePath } from "next/cache";
 import { getDb } from "@/db";
 import { chores, completions, kids } from "@/db/schema";
 import { claimableOccurrenceDates, occurrenceDateFor } from "@/lib/chore-schedule";
-import { clearKidSession, createKidSession, getKidSession } from "@/lib/kid-session";
-import { getHouseholdByFamilyCode, getHouseholdTimezone, getKidsForParent } from "@/lib/queries";
+import { clearKidSession, createKidSession, getKidSession, rememberKidDevice } from "@/lib/kid-session";
+import {
+  getHouseholdByFamilyCode,
+  getHouseholdTimezone,
+  getKidsForParent,
+  getOrCreateHousehold,
+} from "@/lib/queries";
 
 export async function lookupHouseholdByCode(familyCode: string) {
   const household = await getHouseholdByFamilyCode(familyCode);
@@ -35,6 +40,8 @@ export async function verifyKidPinAndLogin(kidId: string, parentUserId: string, 
   if (!valid) return { ok: false as const, error: "Wrong PIN, try again." };
 
   await createKidSession(kid.id, parentUserId);
+  const household = await getOrCreateHousehold(parentUserId);
+  await rememberKidDevice(household.familyCode, kid.id);
   redirect("/kid");
 }
 

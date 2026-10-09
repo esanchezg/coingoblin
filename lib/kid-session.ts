@@ -51,3 +51,32 @@ export async function clearKidSession() {
   }
   store.delete(COOKIE_NAME);
 }
+
+// Survives logout so a kid on their own device only has to re-enter their PIN.
+// Holds no credential — just which household and profile to pre-select.
+const DEVICE_COOKIE_NAME = "kid_device";
+const DEVICE_DURATION_MS = 1000 * 60 * 60 * 24 * 365; // 1 year
+
+export async function rememberKidDevice(familyCode: string, kidId: string) {
+  const store = await cookies();
+  store.set(DEVICE_COOKIE_NAME, JSON.stringify({ familyCode, kidId }), {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    expires: new Date(Date.now() + DEVICE_DURATION_MS),
+    path: "/",
+  });
+}
+
+export async function getRememberedKidDevice(): Promise<{ familyCode: string; kidId: string } | null> {
+  const store = await cookies();
+  const raw = store.get(DEVICE_COOKIE_NAME)?.value;
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (typeof parsed?.familyCode === "string" && typeof parsed?.kidId === "string") return parsed;
+  } catch {
+    // malformed cookie, treat as not remembered
+  }
+  return null;
+}
