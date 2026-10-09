@@ -10,6 +10,7 @@ import {
   getHouseholdTimezone,
   getTakenChoresForKid,
 } from "@/lib/queries";
+import CollapsibleSection from "@/app/collapsible-section";
 
 export default async function KidHome() {
   const session = await getKidSession();
@@ -39,10 +40,7 @@ export default async function KidHome() {
       </section>
 
       {bounties.length > 0 && (
-        <section className="rounded-2xl border border-amber-300 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950">
-          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-amber-800 dark:text-amber-300">
-            🎯 Bounties
-          </h2>
+        <CollapsibleSection id="kid-bounties" title="🎯 Bounties" tone="amber" className="rounded-2xl border border-amber-300 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950">
           <ul className="flex flex-col gap-2">
             {bounties.map((bounty) => (
               <li
@@ -69,13 +67,10 @@ export default async function KidHome() {
               </li>
             ))}
           </ul>
-        </section>
+        </CollapsibleSection>
       )}
 
-      <section>
-        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-          Today&apos;s chores
-        </h2>
+      <CollapsibleSection id="kid-today-s-chores" title={<>Today&apos;s chores</>}>
         {dueToday.length === 0 ? (
           <p className="rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
             Nothing due today. Nice!
@@ -118,13 +113,10 @@ export default async function KidHome() {
             ))}
           </ul>
         )}
-      </section>
+      </CollapsibleSection>
 
       {catchUp.length > 0 && (
-        <section className="rounded-2xl border border-sky-300 bg-sky-50 p-4 dark:border-sky-800 dark:bg-sky-950">
-          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-sky-800 dark:text-sky-300">
-            ⏰ Catch up on chores you missed
-          </h2>
+        <CollapsibleSection id="kid-catch-up-on-chores-you-missed" title="⏰ Catch up on chores you missed" tone="sky" className="rounded-2xl border border-sky-300 bg-sky-50 p-4 dark:border-sky-800 dark:bg-sky-950">
           <ul className="flex flex-col gap-2">
             {catchUp.map(({ chore, occurrenceDate }) => (
               <li
@@ -156,14 +148,11 @@ export default async function KidHome() {
               </li>
             ))}
           </ul>
-        </section>
+        </CollapsibleSection>
       )}
 
       {taken.length > 0 && (
-        <section>
-          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-            Already done this week
-          </h2>
+        <CollapsibleSection id="kid-already-done-this-week" title="Already done this week">
           <ul className="flex flex-col gap-2">
             {taken.map(({ chore, occurrenceDate, claim }) => (
               <li
@@ -181,14 +170,11 @@ export default async function KidHome() {
               </li>
             ))}
           </ul>
-        </section>
+        </CollapsibleSection>
       )}
 
       {pending.length > 0 && (
-        <section>
-          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-            Waiting for approval
-          </h2>
+        <CollapsibleSection id="kid-waiting-for-approval" title="Waiting for approval">
           <ul className="flex flex-col gap-2">
             {pending.map((c) => (
               <li
@@ -200,14 +186,11 @@ export default async function KidHome() {
               </li>
             ))}
           </ul>
-        </section>
+        </CollapsibleSection>
       )}
 
       {completedBounties.length > 0 && (
-        <section>
-          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-            Bounties you&apos;ve crushed
-          </h2>
+        <CollapsibleSection id="kid-bounties-you-ve-crushed" title={<>Bounties you&apos;ve crushed</>}>
           <ul className="flex flex-col gap-2">
             {completedBounties.map((c) => (
               <li
@@ -219,13 +202,10 @@ export default async function KidHome() {
               </li>
             ))}
           </ul>
-        </section>
+        </CollapsibleSection>
       )}
 
-      <section>
-        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-          Family leaderboard
-        </h2>
+      <CollapsibleSection id="kid-family-leaderboard" title="Family leaderboard">
         <ul className="flex flex-col gap-2">
           {leaderboard.map((kid, i) => (
             <li
@@ -250,7 +230,7 @@ export default async function KidHome() {
             </li>
           ))}
         </ul>
-      </section>
+      </CollapsibleSection>
     </div>
   );
 }

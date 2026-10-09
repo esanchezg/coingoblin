@@ -2,6 +2,7 @@ import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import { createKid, deleteKid, resetKidPin } from "@/lib/actions/parent";
 import { getKidsForParent } from "@/lib/queries";
+import CollapsibleSection from "@/app/collapsible-section";
 
 const COLORS = ["#6366f1", "#ec4899", "#22c55e", "#f97316", "#0ea5e9", "#a855f7"];
 
@@ -13,10 +14,7 @@ export default async function KidsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <section>
-        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-          Kids
-        </h2>
+      <CollapsibleSection id="kids-kids" title="Kids">
         {kidRows.length === 0 ? (
           <p className="rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
             No kid profiles yet.
@@ -77,12 +75,9 @@ export default async function KidsPage() {
             ))}
           </ul>
         )}
-      </section>
+      </CollapsibleSection>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-          Add a kid
-        </h2>
+      <CollapsibleSection id="kids-add-a-kid" title="Add a kid" className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
         <form action={createKid} className="flex flex-col gap-3">
           <input
             name="name"
@@ -122,7 +117,7 @@ export default async function KidsPage() {
             Add kid
           </button>
         </form>
-      </section>
+      </CollapsibleSection>
     </div>
   );
 }

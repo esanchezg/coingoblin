@@ -2,6 +2,7 @@ import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import { formatCents } from "@/lib/money";
 import { getEarnersWithBalances, getOrCreateHousehold, getPendingCompletions } from "@/lib/queries";
+import CollapsibleSection from "@/app/collapsible-section";
 
 export default async function DashboardHome() {
   const { userId } = await auth();
@@ -32,10 +33,7 @@ export default async function DashboardHome() {
         </Link>
       )}
 
-      <section>
-        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-          Balances
-        </h2>
+      <CollapsibleSection id="home-balances" title="Balances">
         {earnersWithBalances.length === 0 ? (
           <p className="rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
             No kids yet. Add one from the Kids tab.
@@ -66,7 +64,7 @@ export default async function DashboardHome() {
             ))}
           </ul>
         )}
-      </section>
+      </CollapsibleSection>
     </div>
   );
 }

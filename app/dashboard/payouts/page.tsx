@@ -8,6 +8,7 @@ import {
   getPayoutHistory,
   getUnpaidBreakdownForParent,
 } from "@/lib/queries";
+import CollapsibleSection from "@/app/collapsible-section";
 
 export default async function PayoutsPage() {
   const { userId } = await auth();
@@ -24,10 +25,7 @@ export default async function PayoutsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <section>
-        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-          Balances &amp; payouts
-        </h2>
+      <CollapsibleSection id="payouts-balances-payouts" title={<>Balances &amp; payouts</>}>
         {kidsWithBalances.length === 0 ? (
           <p className="rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
             No kids yet.
@@ -126,12 +124,9 @@ export default async function PayoutsPage() {
             })}
           </ul>
         )}
-      </section>
+      </CollapsibleSection>
 
-      <section>
-        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-          Payout history
-        </h2>
+      <CollapsibleSection id="payouts-payout-history" title="Payout history">
         {history.length === 0 ? (
           <p className="rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
             No payouts recorded yet.
@@ -157,7 +152,7 @@ export default async function PayoutsPage() {
             ))}
           </ul>
         )}
-      </section>
+      </CollapsibleSection>
     </div>
   );
 }

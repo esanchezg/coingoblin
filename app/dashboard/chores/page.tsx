@@ -12,6 +12,7 @@ import { DAY_LABELS, occurrenceDayLabel, scheduleLabel, todayIso } from "@/lib/c
 import { getOrCreateParentEarner } from "@/lib/parent-earner";
 import ChoreDataTransfer from "./data-transfer";
 import EditChoreForm from "./edit-chore-form";
+import CollapsibleSection from "@/app/collapsible-section";
 
 export default async function ChoresPage() {
   const { userId } = await auth();
@@ -38,10 +39,7 @@ export default async function ChoresPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="rounded-2xl border border-amber-300 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950">
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-amber-800 dark:text-amber-300">
-          🎯 Bounties
-        </h2>
+      <CollapsibleSection id="chores-bounties" title="🎯 Bounties" tone="amber" className="rounded-2xl border border-amber-300 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950">
         {openBounties.length === 0 ? (
           <p className="rounded-2xl border border-dashed border-amber-300 bg-white p-4 text-sm text-slate-500 dark:border-amber-800 dark:bg-slate-900 dark:text-slate-400">
             No open bounties. Post one below.
@@ -157,12 +155,9 @@ export default async function ChoresPage() {
             </ul>
           </div>
         )}
-      </section>
+      </CollapsibleSection>
 
-      <section>
-        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-          Chores
-        </h2>
+      <CollapsibleSection id="chores-chores" title="Chores">
         {choreRows.length === 0 ? (
           <p className="rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
             No chores yet. Add one below.
@@ -270,12 +265,9 @@ export default async function ChoresPage() {
             })}
           </ul>
         )}
-      </section>
+      </CollapsibleSection>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-          Add a chore
-        </h2>
+      <CollapsibleSection id="chores-add-a-chore" title="Add a chore" className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
         <form action={createChore} className="flex flex-col gap-3">
           <input
             name="title"
@@ -332,17 +324,14 @@ export default async function ChoresPage() {
             Add chore
           </button>
         </form>
-      </section>
+      </CollapsibleSection>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-          Backup &amp; restore
-        </h2>
+      <CollapsibleSection id="chores-backup-restore" title={<>Backup &amp; restore</>} className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
         <p className="mb-3 text-sm text-slate-500 dark:text-slate-400">
           Save your chore setup, or restore it after a rebuild.
         </p>
         <ChoreDataTransfer />
-      </section>
+      </CollapsibleSection>
     </div>
   );
 }

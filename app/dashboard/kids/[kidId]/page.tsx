@@ -12,6 +12,7 @@ import {
   getHouseholdTimezone,
   getTakenChoresForKid,
 } from "@/lib/queries";
+import CollapsibleSection from "@/app/collapsible-section";
 
 // Read-only view so a parent can check what a kid sees without logging out
 // of their own account. Claiming/completing chores is still done by the kid,
@@ -65,10 +66,7 @@ export default async function KidDashboardPreview({
       </section>
 
       {bounties.length > 0 && (
-        <section className="rounded-2xl border border-amber-300 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950">
-          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-amber-800 dark:text-amber-300">
-            🎯 Bounties available
-          </h2>
+        <CollapsibleSection id="kid-detail-bounties-available" title="🎯 Bounties available" tone="amber" className="rounded-2xl border border-amber-300 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950">
           <ul className="flex flex-col gap-2">
             {bounties.map((bounty) => (
               <li
@@ -80,13 +78,10 @@ export default async function KidDashboardPreview({
               </li>
             ))}
           </ul>
-        </section>
+        </CollapsibleSection>
       )}
 
-      <section>
-        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-          Today&apos;s chores
-        </h2>
+      <CollapsibleSection id="kid-detail-today-s-chores" title={<>Today&apos;s chores</>}>
         {dueToday.length === 0 ? (
           <p className="rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
             Nothing due today.
@@ -116,13 +111,10 @@ export default async function KidDashboardPreview({
             ))}
           </ul>
         )}
-      </section>
+      </CollapsibleSection>
 
       {catchUp.length > 0 && (
-        <section className="rounded-2xl border border-sky-300 bg-sky-50 p-4 dark:border-sky-800 dark:bg-sky-950">
-          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-sky-800 dark:text-sky-300">
-            ⏰ Catch-up chores
-          </h2>
+        <CollapsibleSection id="kid-detail-catch-up-chores" title="⏰ Catch-up chores" tone="sky" className="rounded-2xl border border-sky-300 bg-sky-50 p-4 dark:border-sky-800 dark:bg-sky-950">
           <ul className="flex flex-col gap-2">
             {catchUp.map(({ chore, occurrenceDate }) => (
               <li
@@ -141,14 +133,11 @@ export default async function KidDashboardPreview({
               </li>
             ))}
           </ul>
-        </section>
+        </CollapsibleSection>
       )}
 
       {taken.length > 0 && (
-        <section>
-          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-            Already done this week
-          </h2>
+        <CollapsibleSection id="kid-detail-already-done-this-week" title="Already done this week">
           <ul className="flex flex-col gap-2">
             {taken.map(({ chore, occurrenceDate, claim }) => (
               <li
@@ -166,14 +155,11 @@ export default async function KidDashboardPreview({
               </li>
             ))}
           </ul>
-        </section>
+        </CollapsibleSection>
       )}
 
       {pending.length > 0 && (
-        <section>
-          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-            Waiting for approval
-          </h2>
+        <CollapsibleSection id="kid-detail-waiting-for-approval" title="Waiting for approval">
           <ul className="flex flex-col gap-2">
             {pending.map((c) => (
               <li
@@ -185,14 +171,11 @@ export default async function KidDashboardPreview({
               </li>
             ))}
           </ul>
-        </section>
+        </CollapsibleSection>
       )}
 
       {completedBounties.length > 0 && (
-        <section>
-          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-            Bounties crushed
-          </h2>
+        <CollapsibleSection id="kid-detail-bounties-crushed" title="Bounties crushed">
           <ul className="flex flex-col gap-2">
             {completedBounties.map((c) => (
               <li
@@ -204,7 +187,7 @@ export default async function KidDashboardPreview({
               </li>
             ))}
           </ul>
-        </section>
+        </CollapsibleSection>
       )}
     </div>
   );

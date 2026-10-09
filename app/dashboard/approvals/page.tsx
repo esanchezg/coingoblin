@@ -15,7 +15,7 @@ export default async function ApprovalsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+      <h2 className="text-base font-bold uppercase tracking-wide text-slate-700 dark:text-slate-200">
         Pending approvals
       </h2>
 
