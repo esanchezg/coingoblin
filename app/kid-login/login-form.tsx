@@ -6,12 +6,22 @@ import { lookupHouseholdByCode, verifyKidPinAndLogin } from "@/lib/actions/kid";
 
 type KidOption = { id: string; name: string; color: string };
 
-export default function KidLoginForm() {
-  const [step, setStep] = useState<"code" | "pick" | "pin">("code");
-  const [code, setCode] = useState("");
-  const [kids, setKids] = useState<KidOption[]>([]);
-  const [parentUserId, setParentUserId] = useState("");
-  const [selectedKid, setSelectedKid] = useState<KidOption | null>(null);
+type Remembered = {
+  code: string;
+  parentUserId: string;
+  kids: KidOption[];
+  kidId: string;
+};
+
+export default function KidLoginForm({ remembered }: { remembered: Remembered | null }) {
+  const rememberedKid = remembered?.kids.find((k) => k.id === remembered.kidId) ?? null;
+  const [step, setStep] = useState<"code" | "pick" | "pin">(
+    rememberedKid ? "pin" : remembered ? "pick" : "code",
+  );
+  const [code, setCode] = useState(remembered?.code ?? "");
+  const [kids, setKids] = useState<KidOption[]>(remembered?.kids ?? []);
+  const [parentUserId, setParentUserId] = useState(remembered?.parentUserId ?? "");
+  const [selectedKid, setSelectedKid] = useState<KidOption | null>(rememberedKid);
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
@@ -93,6 +103,16 @@ export default function KidLoginForm() {
               {kid.name}
             </button>
           ))}
+          <button
+            type="button"
+            onClick={() => {
+              setStep("code");
+              setError("");
+            }}
+            className="text-sm text-slate-400 dark:text-slate-500"
+          >
+            Use a different family code
+          </button>
         </div>
       )}
 
@@ -121,10 +141,14 @@ export default function KidLoginForm() {
           </button>
           <button
             type="button"
-            onClick={() => setStep("pick")}
+            onClick={() => {
+              setStep("pick");
+              setPin("");
+              setError("");
+            }}
             className="text-sm text-slate-400 dark:text-slate-500"
           >
-            ← back
+            Not {selectedKid.name}?
           </button>
         </form>
       )}
