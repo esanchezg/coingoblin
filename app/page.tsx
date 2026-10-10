@@ -2,10 +2,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import { getKidSession } from "@/lib/kid-session";
 
 export default async function Home() {
   const { userId } = await auth();
   if (userId) redirect("/dashboard");
+  if (await getKidSession()) redirect("/kid");
 
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-10 px-6 py-16">
