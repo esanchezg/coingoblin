@@ -8,6 +8,7 @@ import { getDb } from "@/db";
 import { chores, completions, households, kids, payouts } from "@/db/schema";
 import { dollarsToCents } from "@/lib/money";
 import { weekOccurrenceDates } from "@/lib/chore-schedule";
+import { currentMcpParent } from "@/lib/mcp-context";
 import { getOrCreateParentEarner } from "@/lib/parent-earner";
 import {
   getChoresForParent,
@@ -18,11 +19,26 @@ import {
 } from "@/lib/queries";
 
 async function requireParentUserId() {
-  const { userId } = await auth();
+  // MCP requests carry an OAuth bearer token instead of a Clerk session; the route has
+  // already verified it and pinned the parent for this call (see lib/mcp-context.ts).
+  const userId = currentMcpParent() ?? (await auth()).userId;
   if (!userId) throw new Error("Not authenticated");
   await getOrCreateHousehold(userId);
   await getOrCreateParentEarner(userId);
   return userId;
+}
+
+// An assignee must be one of this parent's own earners — the dropdown only ever
+// offers those, but the action shouldn't trust the submitted id (MCP callers can
+// send anything).
+async function assertOwnEarner(parentUserId: string, kidId: string | null) {
+  if (!kidId) return;
+  const [row] = await getDb()
+    .select({ id: kids.id })
+    .from(kids)
+    .where(and(eq(kids.id, kidId), eq(kids.parentUserId, parentUserId)))
+    .limit(1);
+  if (!row) throw new Error("Assigned kid not found");
 }
 
 export async function createKid(formData: FormData) {
@@ -81,6 +97,7 @@ export async function createChore(formData: FormData) {
 
   if (!title) throw new Error("Title is required");
   if (valueCents <= 0) throw new Error("Value must be greater than 0");
+  await assertOwnEarner(parentUserId, assignedKidId);
 
   const db = getDb();
   await db.insert(chores).values({
@@ -115,6 +132,11 @@ export async function updateChore(
 
   if (!title) return { ok: false, error: "Title is required" };
   if (valueCents <= 0) return { ok: false, error: "Value must be greater than 0" };
+  try {
+    await assertOwnEarner(parentUserId, assignedKidId);
+  } catch {
+    return { ok: false, error: "Assigned kid not found" };
+  }
 
   const db = getDb();
   const [chore] = await db
