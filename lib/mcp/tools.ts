@@ -153,7 +153,7 @@ export function registerTools(server: McpServer) {
     });
 
   define("get_balance_breakdown",
-    "What each kid's owed balance is made of: approved chores claimed since their last payout, plus any carried-over (or paid-ahead) remainder. Omit kid for everyone.",
+    "What each earner's (kids and the parent) owed balance is made of: approved chores claimed since their last payout, plus any carried-over (or paid-ahead) remainder. Omit kid for everyone.",
     z.object({ kid: z.string().optional().describe("Kid name or id.") }), READ, async ({ kid }, parentUserId) => {
       const [earners, breakdowns, timezone] = await Promise.all([
         getEarnersWithBalances(parentUserId),
@@ -162,12 +162,13 @@ export function registerTools(server: McpServer) {
       ]);
       const wanted = kid ? (await resolveEarner(parentUserId, kid)).id : null;
       return earners
-        .filter((e) => !e.isParent && (!wanted || e.id === wanted))
+        .filter((e) => !wanted || e.id === wanted)
         .map((e) => {
           const items = breakdowns.get(e.id) ?? [];
           const listed = items.reduce((sum, i) => sum + i.valueCents, 0);
           return {
             kid: e.name,
+            isParent: e.isParent,
             owed: money(e.balanceCents),
             carriedOver: money(e.balanceCents - listed),
             chores: items.map((i) => ({
@@ -234,7 +235,7 @@ export function registerTools(server: McpServer) {
     });
 
   define("list_payouts",
-    "Payout history across all kids, newest first.",
+    "Payout history across all kids (and the parent's zero-outs), newest first.",
     z.object({}), READ, async (_a, parentUserId) => {
       const history = await getPayoutHistory(parentUserId);
       return history.map((p) => ({ kid: p.kidName, amount: money(p.amountCents), note: p.note, paidAt: p.createdAt.toISOString() }));
@@ -302,14 +303,13 @@ export function registerTools(server: McpServer) {
     });
 
   define("record_payout",
-    "Record that the parent paid a kid cash. Reduces what's owed by that amount. Only call this after the parent has told you the kid and amount.",
+    "Record that the parent paid a kid cash, or zero out the parent's own leaderboard balance (pass the parent as kid). Reduces what's owed by that amount. Only call this after the parent has told you the kid and amount.",
     z.object({
       kid: z.string().describe("Kid name or id."),
       amount: dollars,
       note: z.string().max(200).optional(),
     }), DESTRUCTIVE, async ({ kid, amount, note }, parentUserId) => {
       const earner = await resolveEarner(parentUserId, kid);
-      if (earner.isParent) throw new ToolError("Payouts are for kids, not the parent.");
       const f = new FormData();
       f.set("kidId", earner.id);
       f.set("amount", String(amount));
