@@ -19,8 +19,11 @@ export default async function PayoutsPage() {
     getHouseholdTimezone(userId),
     getUnpaidBreakdownForParent(userId),
   ]);
-  // Paying yourself doesn't make sense — this list is real kids only.
-  const kidsWithBalances = earnersWithBalances.filter((e) => !e.isParent);
+  // Kids first, then the parent — whose "payout" just zeroes out their leaderboard balance.
+  const kidsWithBalances = [
+    ...earnersWithBalances.filter((e) => !e.isParent),
+    ...earnersWithBalances.filter((e) => e.isParent),
+  ];
 
   return (
     <div className="flex flex-col gap-6">
@@ -49,6 +52,11 @@ export default async function PayoutsPage() {
                         style={{ backgroundColor: kid.color }}
                       />
                       <span className="font-medium">{kid.name}</span>
+                      {kid.isParent && (
+                        <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold uppercase text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+                          Parent
+                        </span>
+                      )}
                     </div>
                     <span className="font-semibold text-emerald-600 dark:text-emerald-400">
                       {formatCents(kid.balanceCents)} owed
@@ -98,29 +106,45 @@ export default async function PayoutsPage() {
                     </details>
                   )}
 
-                  <form action={markPaid} className="flex gap-2">
-                    <input type="hidden" name="kidId" value={kid.id} />
-                    <input
-                      name="amount"
-                      type="number"
-                      step="0.25"
-                      min="0.25"
-                      placeholder="Amount"
-                      required
-                      className="w-24 rounded-xl border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"
-                    />
-                    <input
-                      name="note"
-                      placeholder="Note (optional)"
-                      className="flex-1 rounded-xl border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"
-                    />
-                    <button
-                      type="submit"
-                      className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white dark:bg-indigo-700"
-                    >
-                      Mark paid
-                    </button>
-                  </form>
+                  {kid.isParent ? (
+                    kid.balanceCents > 0 && (
+                      <form action={markPaid}>
+                        <input type="hidden" name="kidId" value={kid.id} />
+                        <input type="hidden" name="amount" value={(kid.balanceCents / 100).toFixed(2)} />
+                        <input type="hidden" name="note" value="Zeroed out" />
+                        <button
+                          type="submit"
+                          className="rounded-xl bg-slate-600 px-4 py-2 text-sm font-semibold text-white dark:bg-slate-700"
+                        >
+                          Zero out
+                        </button>
+                      </form>
+                    )
+                  ) : (
+                    <form action={markPaid} className="flex gap-2">
+                      <input type="hidden" name="kidId" value={kid.id} />
+                      <input
+                        name="amount"
+                        type="number"
+                        step="0.25"
+                        min="0.25"
+                        placeholder="Amount"
+                        required
+                        className="w-24 rounded-xl border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"
+                      />
+                      <input
+                        name="note"
+                        placeholder="Note (optional)"
+                        className="flex-1 rounded-xl border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"
+                      />
+                      <button
+                        type="submit"
+                        className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white dark:bg-indigo-700"
+                      >
+                        Mark paid
+                      </button>
+                    </form>
+                  )}
                 </li>
               );
             })}
