@@ -168,8 +168,9 @@ export async function getPendingCompletions(parentUserId: string) {
 
 export async function getPayoutHistory(parentUserId: string) {
   const db = getDb();
-  const parentKids = await getKidsForParent(parentUserId);
-  const kidIds = parentKids.map((k) => k.id);
+  // Includes the parent earner, whose payouts zero out their leaderboard balance.
+  const earners = await getEarnersForParent(parentUserId);
+  const kidIds = earners.map((k) => k.id);
   if (kidIds.length === 0) return [];
   return db
     .select({
@@ -206,8 +207,9 @@ export async function getUnpaidBreakdownForParent(
   parentUserId: string,
 ): Promise<Map<string, UnpaidBreakdownItem[]>> {
   const db = getDb();
-  const parentKids = await getKidsForParent(parentUserId);
-  const kidIds = parentKids.map((k) => k.id);
+  // Includes the parent earner, whose payouts zero out their leaderboard balance.
+  const earners = await getEarnersForParent(parentUserId);
+  const kidIds = earners.map((k) => k.id);
   const result = new Map<string, UnpaidBreakdownItem[]>();
   for (const id of kidIds) result.set(id, []);
   if (kidIds.length === 0) return result;
