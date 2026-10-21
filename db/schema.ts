@@ -30,6 +30,9 @@ export const kids = pgTable("kids", {
   // Parent rows only: the Clerk user this earner belongs to. A household can have several
   // parents, each with their own row; null on kids (and on an owner row not yet claimed).
   clerkUserId: text("clerk_user_id").unique(),
+  // Parent rows only: set when another parent turns this parent's access off. Their earner row,
+  // balance and history stay; they just can't use the dashboard or MCP until it's turned back on.
+  disabledAt: timestamp("disabled_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -80,6 +83,19 @@ export const payouts = pgTable("payouts", {
   kidId: uuid("kid_id").notNull(),
   amountCents: integer("amount_cents").notNull(),
   note: text("note"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// One-time links that let another parent join a household. Only the SHA-256 of the token is
+// stored; a link expires after a week and can be used once.
+export const householdInvites = pgTable("household_invites", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  parentUserId: text("parent_user_id").notNull(),
+  tokenHash: text("token_hash").notNull().unique(),
+  createdByUserId: text("created_by_user_id").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  usedAt: timestamp("used_at"),
+  usedByUserId: text("used_by_user_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

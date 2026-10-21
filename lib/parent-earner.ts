@@ -13,8 +13,8 @@ async function findByClerkUser(userId: string) {
   return row ?? null;
 }
 
-// One earner row per parent (Clerk user) in the household.
-export async function getOrCreateParentEarner(parentUserId: string, userId: string) {
+// One earner row per parent (Clerk user) in the household. `name` defaults to their Clerk first name.
+export async function getOrCreateParentEarner(parentUserId: string, userId: string, name?: string) {
   const db = getDb();
   const existing = await findByClerkUser(userId);
   if (existing) return existing;
@@ -29,13 +29,12 @@ export async function getOrCreateParentEarner(parentUserId: string, userId: stri
     if (claimed) return claimed;
   }
 
-  const user = await currentUser();
-  const name = user?.firstName?.trim() || "Parent";
+  const displayName = name?.trim() || (await currentUser())?.firstName?.trim() || "Parent";
 
   try {
     const [created] = await db
       .insert(kids)
-      .values({ parentUserId, name, pinHash: PARENT_NO_LOGIN_HASH, color: PARENT_COLOR, isParent: true, clerkUserId: userId })
+      .values({ parentUserId, name: displayName, pinHash: PARENT_NO_LOGIN_HASH, color: PARENT_COLOR, isParent: true, clerkUserId: userId })
       .returning();
     return created;
   } catch {
