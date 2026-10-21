@@ -1,6 +1,5 @@
 "use server";
 
-import { auth } from "@clerk/nextjs/server";
 import bcrypt from "bcryptjs";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -8,24 +7,20 @@ import { getDb } from "@/db";
 import { chores, completions, households, kids, payouts } from "@/db/schema";
 import { dollarsToCents } from "@/lib/money";
 import { weekOccurrenceDates } from "@/lib/chore-schedule";
-import { currentMcpParent } from "@/lib/mcp-context";
-import { getOrCreateParentEarner } from "@/lib/parent-earner";
+import { currentParent } from "@/lib/current-parent";
 import {
   getChoresForParent,
   getEarnersWithBalances,
   getHouseholdTimezone,
   getKidsForParent,
-  getOrCreateHousehold,
 } from "@/lib/queries";
 
+// Returns the signed-in parent's household id (its creator's Clerk id), which is what every
+// parentUserId column holds — not necessarily the signed-in user's own id.
 async function requireParentUserId() {
-  // MCP requests carry an OAuth bearer token instead of a Clerk session; the route has
-  // already verified it and pinned the parent for this call (see lib/mcp-context.ts).
-  const userId = currentMcpParent() ?? (await auth()).userId;
-  if (!userId) throw new Error("Not authenticated");
-  await getOrCreateHousehold(userId);
-  await getOrCreateParentEarner(userId);
-  return userId;
+  const parent = await currentParent();
+  if (!parent) throw new Error("Not authenticated");
+  return parent.householdId;
 }
 
 // An assignee must be one of this parent's own earners — the dropdown only ever

@@ -103,12 +103,12 @@ export function registerTools(server: McpServer) {
   ) {
     // The generic schema defeats the SDK's argument inference, so the callback is typed here instead.
     const callback = async (rawArgs: unknown, ctx: { http?: { authInfo?: Parameters<typeof resolveParent>[0] } }) => {
-      const parentUserId = await resolveParent(ctx.http?.authInfo);
+      const parent = await resolveParent(ctx.http?.authInfo);
       const parsed = schema.safeParse(rawArgs);
       if (!parsed.success) return fail(`Invalid input: ${parsed.error.issues[0]?.message ?? "check the arguments"}`);
-      if (!parentUserId) return fail("No CoinGoblin household is linked to this account. Open the CoinGoblin dashboard once while signed in, then try again.");
+      if (!parent) return fail("No CoinGoblin household is linked to this account. Open the CoinGoblin dashboard once while signed in, then try again.");
       try {
-        return text(await runAsParent(parentUserId, () => handler(parsed.data as z.output<S>, parentUserId)));
+        return text(await runAsParent(parent, () => handler(parsed.data as z.output<S>, parent.householdId)));
       } catch (e) {
         if (e instanceof ToolError) return fail(e.message);
         if (e instanceof Error && ["Not found", "Assigned kid not found"].includes(e.message)) return fail(e.message);

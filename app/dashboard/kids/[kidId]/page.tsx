@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { auth } from "@clerk/nextjs/server";
+import { currentParent } from "@/lib/current-parent";
 import { formatCents } from "@/lib/money";
 import { isCatchUpOccurrence, occurrenceDayLabel, scheduleLabel } from "@/lib/chore-schedule";
 import {
@@ -21,21 +21,22 @@ export default async function KidDashboardPreview({
 }: {
   params: Promise<{ kidId: string }>;
 }) {
-  const { userId } = await auth();
-  if (!userId) return null;
+  const parent = await currentParent();
+  if (!parent) return null;
+  const { householdId } = parent;
   const { kidId } = await params;
 
-  const kidRows = await getKidsForParent(userId);
+  const kidRows = await getKidsForParent(householdId);
   const kid = kidRows.find((k) => k.id === kidId);
   if (!kid) notFound();
 
   const [available, bounties, taken, completions, leaderboard, timezone] = await Promise.all([
-    getAvailableChoresForKid(kid.id, userId),
-    getAvailableBountiesForKid(kid.id, userId),
-    getTakenChoresForKid(kid.id, userId),
+    getAvailableChoresForKid(kid.id, householdId),
+    getAvailableBountiesForKid(kid.id, householdId),
+    getTakenChoresForKid(kid.id, householdId),
     getKidCompletions(kid.id),
-    getEarnersWithBalances(userId),
-    getHouseholdTimezone(userId),
+    getEarnersWithBalances(householdId),
+    getHouseholdTimezone(householdId),
   ]);
 
   const dueToday = available.filter((s) => !isCatchUpOccurrence(s.occurrenceDate, timezone));

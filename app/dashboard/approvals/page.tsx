@@ -1,16 +1,17 @@
-import { auth } from "@clerk/nextjs/server";
+import { currentParent } from "@/lib/current-parent";
 import { approveCompletion, rejectCompletion } from "@/lib/actions/parent";
 import { formatDateTimeInZone } from "@/lib/date";
 import { formatCents } from "@/lib/money";
 import { getHouseholdTimezone, getPendingCompletions } from "@/lib/queries";
 
 export default async function ApprovalsPage() {
-  const { userId } = await auth();
-  if (!userId) return null;
+  const parent = await currentParent();
+  if (!parent) return null;
+  const { householdId } = parent;
 
   const [pending, timezone] = await Promise.all([
-    getPendingCompletions(userId),
-    getHouseholdTimezone(userId),
+    getPendingCompletions(householdId),
+    getHouseholdTimezone(householdId),
   ]);
 
   return (

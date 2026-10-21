@@ -1,6 +1,7 @@
-import { and, desc, eq, inArray, isNull, or } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, isNull, or } from "drizzle-orm";
 import { getDb } from "@/db";
-import { chores, completions, households, kids, payouts } from "@/db/schema";
+import { chores, completions, householdInvites, households, kids, payouts } from "@/db/schema";
+import { hashToken } from "@/lib/tokens";
 import { DEFAULT_TIMEZONE, claimableOccurrenceDates, weekOccurrenceDates } from "@/lib/chore-schedule";
 
 function randomFamilyCode(): string {
@@ -29,7 +30,14 @@ export async function getOrCreateHousehold(parentUserId: string) {
         .returning();
       return created;
     } catch {
-      // family code collision, retry with a new code
+      // Either a family code collision (retry with a new code) or a concurrent request
+      // already created this parent's household (use it).
+      const [raced] = await db
+        .select()
+        .from(households)
+        .where(eq(households.parentUserId, parentUserId))
+        .limit(1);
+      if (raced) return raced;
     }
   }
   throw new Error("Could not create household");
@@ -71,6 +79,33 @@ export async function getEarnersForParent(parentUserId: string) {
     .select({ id: kids.id, name: kids.name, color: kids.color, isParent: kids.isParent })
     .from(kids)
     .where(eq(kids.parentUserId, parentUserId))
+    .orderBy(kids.createdAt);
+}
+
+// The household an unused, unexpired invite token is for, or null.
+export async function findOpenInvite(token: string) {
+  if (!/^[0-9a-f]{64}$/.test(token)) return null;
+  const [invite] = await getDb()
+    .select({ id: householdInvites.id, householdId: householdInvites.parentUserId })
+    .from(householdInvites)
+    .where(
+      and(
+        eq(householdInvites.tokenHash, hashToken(token)),
+        isNull(householdInvites.usedAt),
+        gt(householdInvites.expiresAt, new Date()),
+      ),
+    )
+    .limit(1);
+  return invite ?? null;
+}
+
+// The household's parents (their earner rows), for managing who has access.
+export async function getParentsForHousehold(parentUserId: string) {
+  const db = getDb();
+  return db
+    .select({ id: kids.id, name: kids.name, clerkUserId: kids.clerkUserId, disabledAt: kids.disabledAt })
+    .from(kids)
+    .where(and(eq(kids.parentUserId, parentUserId), eq(kids.isParent, true)))
     .orderBy(kids.createdAt);
 }
 

@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { currentParent } from "@/lib/current-parent";
 import { markPaid } from "@/lib/actions/parent";
 import { formatCents } from "@/lib/money";
 import { formatDateInZone, formatDateTimeInZone } from "@/lib/date";
@@ -10,14 +10,15 @@ import {
 } from "@/lib/queries";
 
 export default async function PayoutsPage() {
-  const { userId } = await auth();
-  if (!userId) return null;
+  const parent = await currentParent();
+  if (!parent) return null;
+  const { householdId } = parent;
 
   const [earnersWithBalances, history, timezone, breakdowns] = await Promise.all([
-    getEarnersWithBalances(userId),
-    getPayoutHistory(userId),
-    getHouseholdTimezone(userId),
-    getUnpaidBreakdownForParent(userId),
+    getEarnersWithBalances(householdId),
+    getPayoutHistory(householdId),
+    getHouseholdTimezone(householdId),
+    getUnpaidBreakdownForParent(householdId),
   ]);
   // Kids first, then the parent — whose "payout" just zeroes out their leaderboard balance.
   const kidsWithBalances = [
