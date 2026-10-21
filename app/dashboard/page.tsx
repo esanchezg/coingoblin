@@ -1,16 +1,17 @@
 import Link from "next/link";
-import { auth } from "@clerk/nextjs/server";
+import { currentParent } from "@/lib/current-parent";
 import { formatCents } from "@/lib/money";
 import { getEarnersWithBalances, getOrCreateHousehold, getPendingCompletions } from "@/lib/queries";
 
 export default async function DashboardHome() {
-  const { userId } = await auth();
-  if (!userId) return null;
+  const parent = await currentParent();
+  if (!parent) return null;
+  const { householdId } = parent;
 
   const [household, earnersWithBalances, pending] = await Promise.all([
-    getOrCreateHousehold(userId),
-    getEarnersWithBalances(userId),
-    getPendingCompletions(userId),
+    getOrCreateHousehold(householdId),
+    getEarnersWithBalances(householdId),
+    getPendingCompletions(householdId),
   ]);
 
   return (

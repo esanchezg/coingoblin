@@ -1,5 +1,5 @@
 import { currentUser } from "@clerk/nextjs/server";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { getDb } from "@/db";
 import { kids } from "@/db/schema";
 
@@ -8,14 +8,26 @@ import { kids } from "@/db/schema";
 const PARENT_NO_LOGIN_HASH = "no-login";
 const PARENT_COLOR = "#475569";
 
-export async function getOrCreateParentEarner(parentUserId: string) {
+async function findByClerkUser(userId: string) {
+  const [row] = await getDb().select().from(kids).where(eq(kids.clerkUserId, userId)).limit(1);
+  return row ?? null;
+}
+
+// One earner row per parent (Clerk user) in the household.
+export async function getOrCreateParentEarner(parentUserId: string, userId: string) {
   const db = getDb();
-  const [existing] = await db
-    .select()
-    .from(kids)
-    .where(and(eq(kids.parentUserId, parentUserId), eq(kids.isParent, true)))
-    .limit(1);
+  const existing = await findByClerkUser(userId);
   if (existing) return existing;
+
+  // The owner's row predates per-parent ids, so it's claimed on first sight.
+  if (userId === parentUserId) {
+    const [claimed] = await db
+      .update(kids)
+      .set({ clerkUserId: userId })
+      .where(and(eq(kids.parentUserId, parentUserId), eq(kids.isParent, true), isNull(kids.clerkUserId)))
+      .returning();
+    if (claimed) return claimed;
+  }
 
   const user = await currentUser();
   const name = user?.firstName?.trim() || "Parent";
@@ -23,15 +35,11 @@ export async function getOrCreateParentEarner(parentUserId: string) {
   try {
     const [created] = await db
       .insert(kids)
-      .values({ parentUserId, name, pinHash: PARENT_NO_LOGIN_HASH, color: PARENT_COLOR, isParent: true })
+      .values({ parentUserId, name, pinHash: PARENT_NO_LOGIN_HASH, color: PARENT_COLOR, isParent: true, clerkUserId: userId })
       .returning();
     return created;
   } catch {
-    const [row] = await db
-      .select()
-      .from(kids)
-      .where(and(eq(kids.parentUserId, parentUserId), eq(kids.isParent, true)))
-      .limit(1);
+    const row = await findByClerkUser(userId);
     if (row) return row;
     throw new Error("Could not create parent earner");
   }

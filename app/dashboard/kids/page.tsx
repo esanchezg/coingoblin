@@ -1,15 +1,16 @@
 import Link from "next/link";
-import { auth } from "@clerk/nextjs/server";
+import { currentParent } from "@/lib/current-parent";
 import { createKid, deleteKid, resetKidPin } from "@/lib/actions/parent";
 import { getKidsForParent } from "@/lib/queries";
 
 const COLORS = ["#6366f1", "#ec4899", "#22c55e", "#f97316", "#0ea5e9", "#a855f7"];
 
 export default async function KidsPage() {
-  const { userId } = await auth();
-  if (!userId) return null;
+  const parent = await currentParent();
+  if (!parent) return null;
+  const { householdId } = parent;
 
-  const kidRows = await getKidsForParent(userId);
+  const kidRows = await getKidsForParent(householdId);
 
   return (
     <div className="flex flex-col gap-6">

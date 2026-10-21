@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { currentParent } from "@/lib/current-parent";
 import { createChore, deleteChore, logCompletionFor, setChoreActive } from "@/lib/actions/parent";
 import { formatCents } from "@/lib/money";
 import {
@@ -9,21 +9,20 @@ import {
   getHouseholdTimezone,
 } from "@/lib/queries";
 import { DAY_LABELS, occurrenceDayLabel, scheduleLabel, todayIso } from "@/lib/chore-schedule";
-import { getOrCreateParentEarner } from "@/lib/parent-earner";
 import ChoreDataTransfer from "./data-transfer";
 import EditChoreForm from "./edit-chore-form";
 
 export default async function ChoresPage() {
-  const { userId } = await auth();
-  if (!userId) return null;
+  const parent = await currentParent();
+  if (!parent) return null;
+  const { householdId } = parent;
 
-  await getOrCreateParentEarner(userId);
   const [choreRows, earners, bounties, timezone, occurrences] = await Promise.all([
-    getChoresForParent(userId),
-    getEarnersForParent(userId),
-    getBountiesForParent(userId),
-    getHouseholdTimezone(userId),
-    getChoreOccurrencesForParent(userId),
+    getChoresForParent(householdId),
+    getEarnersForParent(householdId),
+    getBountiesForParent(householdId),
+    getHouseholdTimezone(householdId),
+    getChoreOccurrencesForParent(householdId),
   ]);
   const kidRows = earners.filter((e) => !e.isParent);
   const kidNameById = new Map(kidRows.map((k) => [k.id, k.name]));
@@ -249,7 +248,7 @@ export default async function ChoresPage() {
                                   >
                                     {earners.map((e) => (
                                       <option key={e.id} value={e.id}>
-                                        {e.isParent ? `Me (${e.name})` : e.name}
+                                        {e.id === parent.earnerId ? `Me (${e.name})` : e.name}
                                       </option>
                                     ))}
                                   </select>

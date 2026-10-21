@@ -9,6 +9,8 @@ import {
 } from "drizzle-orm/pg-core";
 
 export const households = pgTable("households", {
+  // The Clerk id of the parent who created the household. Doubles as the household's id:
+  // every other table's parentUserId points here, whichever parent is signed in.
   parentUserId: text("parent_user_id").primaryKey(),
   familyCode: text("family_code").notNull().unique(),
   // IANA zone (e.g. "America/Denver"), auto-detected from the parent's browser on
@@ -25,6 +27,9 @@ export const kids = pgTable("kids", {
   color: text("color").notNull().default("#6366f1"),
   // Marks the lazily-created pseudo-earner row representing the parent — not a real login profile.
   isParent: boolean("is_parent").notNull().default(false),
+  // Parent rows only: the Clerk user this earner belongs to. A household can have several
+  // parents, each with their own row; null on kids (and on an owner row not yet claimed).
+  clerkUserId: text("clerk_user_id").unique(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
