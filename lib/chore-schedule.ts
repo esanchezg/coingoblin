@@ -74,6 +74,19 @@ function isoFromUtcDate(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
+// This week's Monday (household-local) as YYYY-MM-DD.
+export function weekStartIso(timezone: string, now: Date = new Date()): string {
+  const cursor = new Date(`${todayIso(timezone, now)}T00:00:00Z`);
+  cursor.setUTCDate(cursor.getUTCDate() - ((cursor.getUTCDay() + 6) % 7));
+  return isoFromUtcDate(cursor);
+}
+
+// The calendar day a completion counts for: its slot, or — for one-time chores
+// and bounties, which have no slot — the household-local day it was claimed.
+export function completionDayIso(occurrenceDate: string, completedAt: Date, timezone: string): string {
+  return occurrenceDate === ONCE_OCCURRENCE_DATE ? todayIso(timezone, completedAt) : occurrenceDate;
+}
+
 // Every occurrence of this chore scheduled from this week's Monday (household-
 // local) through today, inclusive, regardless of whether it's still claimable —
 // this is the full week-to-date history, for the parent's chore list. One-time
