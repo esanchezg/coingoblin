@@ -54,6 +54,10 @@ export const chores = pgTable("chores", {
   // false for chores with no makeup window (e.g. "let the chickens out") — claimable
   // only on the day they're due, never carried into the rest-of-week catch-up set.
   allowCatchUp: boolean("allow_catch_up").notNull().default(true),
+  // true for optional chores done only when needed (e.g. "take out the kitchen
+  // trash") — offered every scheduled day, but never counted as missed. Always
+  // stored with allowCatchUp: false so skipped days never pile up as catch-up.
+  asNeeded: boolean("as_needed").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

@@ -88,7 +88,9 @@ export async function createChore(formData: FormData) {
   const assignedKidIdRaw = String(formData.get("assignedKidId") ?? "any");
   const assignedKidId = assignedKidIdRaw === "any" ? null : assignedKidIdRaw;
   const daysOfWeek = formData.getAll("daysOfWeek").map(String).join(",") || null;
-  const allowCatchUp = formData.get("noCatchUp") !== "1";
+  const asNeeded = formData.get("asNeeded") === "1";
+  // As-needed chores are never "missed", so they never get a makeup window.
+  const allowCatchUp = !asNeeded && formData.get("noCatchUp") !== "1";
 
   if (!title) throw new Error("Title is required");
   if (valueCents <= 0) throw new Error("Value must be greater than 0");
@@ -104,6 +106,7 @@ export async function createChore(formData: FormData) {
     assignedKidId,
     isBounty,
     allowCatchUp,
+    asNeeded: isBounty ? false : asNeeded,
   });
   revalidatePath("/dashboard/chores");
 }
@@ -123,7 +126,9 @@ export async function updateChore(
   const assignedKidIdRaw = String(formData.get("assignedKidId") ?? "any");
   const assignedKidId = assignedKidIdRaw === "any" ? null : assignedKidIdRaw;
   const daysOfWeek = formData.getAll("daysOfWeek").map(String).join(",") || null;
-  const allowCatchUp = formData.get("noCatchUp") !== "1";
+  const asNeeded = formData.get("asNeeded") === "1";
+  // As-needed chores are never "missed", so they never get a makeup window.
+  const allowCatchUp = !asNeeded && formData.get("noCatchUp") !== "1";
 
   if (!title) return { ok: false, error: "Title is required" };
   if (valueCents <= 0) return { ok: false, error: "Value must be greater than 0" };
@@ -156,6 +161,7 @@ export async function updateChore(
       recurrence,
       daysOfWeek: recurrence === "weekly" ? daysOfWeek : null,
       allowCatchUp,
+      asNeeded: chore.isBounty ? false : asNeeded,
     })
     .where(and(eq(chores.id, choreId), eq(chores.parentUserId, parentUserId)));
   revalidatePath("/dashboard/chores");
@@ -358,6 +364,7 @@ export async function exportChores() {
       assignedKidName: chore.assignedKidId ? kidNameById.get(chore.assignedKidId) ?? null : null,
       active: chore.active,
       allowCatchUp: chore.allowCatchUp,
+      asNeeded: chore.asNeeded,
     })),
   };
 }
@@ -382,6 +389,7 @@ type ImportChoreEntry = {
   assignedKidName: string | null;
   active: boolean;
   allowCatchUp: boolean;
+  asNeeded: boolean;
 };
 
 function validateImportPayload(raw: unknown): { chores: ImportChoreEntry[] } | { error: string } {
@@ -431,7 +439,8 @@ function validateImportPayload(raw: unknown): { chores: ImportChoreEntry[] } | {
       daysOfWeek: (daysOfWeek as string | null) ?? null,
       assignedKidName: (assignedKidName as string | null) ?? null,
       active: entry.active !== false,
-      allowCatchUp: entry.allowCatchUp !== false,
+      allowCatchUp: entry.asNeeded !== true && entry.allowCatchUp !== false,
+      asNeeded: entry.asNeeded === true,
     });
   }
 
@@ -474,6 +483,7 @@ export async function importChores(json: string) {
       assignedKidId,
       active: entry.active,
       allowCatchUp: entry.allowCatchUp,
+      asNeeded: entry.asNeeded,
       isBounty: false,
     };
   });

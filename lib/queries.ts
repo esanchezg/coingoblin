@@ -360,7 +360,7 @@ export async function getClaimsForOccurrences(
 // downstream needs an isBounty branch. Defaults to the claimable window; pass
 // weekOccurrenceDates for a full week-to-date history regardless of claimability.
 function expandOccurrences<
-  T extends { id: string; recurrence: "once" | "daily" | "weekly"; daysOfWeek: string | null; allowCatchUp?: boolean },
+  T extends { id: string; recurrence: "once" | "daily" | "weekly"; daysOfWeek: string | null; allowCatchUp?: boolean; asNeeded?: boolean },
 >(
   choreRows: T[],
   timezone: string,

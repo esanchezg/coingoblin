@@ -76,6 +76,7 @@ function choreForm(fields: {
   daysOfWeek: number[];
   assignedKidId: string | null;
   noCatchUp: boolean;
+  asNeeded: boolean;
   isBounty?: boolean;
 }) {
   const f = new FormData();
@@ -86,6 +87,7 @@ function choreForm(fields: {
   for (const d of fields.daysOfWeek) f.append("daysOfWeek", String(d));
   f.set("assignedKidId", fields.assignedKidId ?? "any");
   if (fields.noCatchUp) f.set("noCatchUp", "1");
+  if (fields.asNeeded) f.set("asNeeded", "1");
   if (fields.isBounty) f.set("isBounty", "1");
   return f;
 }
@@ -202,6 +204,7 @@ export function registerTools(server: McpServer) {
         assignedTo: c.assignedKidId ? nameById.get(c.assignedKidId) ?? "unknown kid" : "anyone",
         active: c.active,
         allowCatchUp: c.allowCatchUp,
+        asNeeded: c.asNeeded,
       });
       return {
         chores: choreRows.map((c) => ({
@@ -338,6 +341,7 @@ export function registerTools(server: McpServer) {
       daysOfWeek: dayInput.optional(),
       assignedTo: assignee,
       noCatchUp: z.boolean().optional().describe("True = must be done the same day, no makeup window."),
+      asNeeded: z.boolean().optional().describe("True = optional, done only when needed (e.g. take out the trash). Never counted as missed."),
       isBounty: z.boolean().optional(),
     }), WRITE, async (a, parentUserId) => {
       if (a.recurrence === "weekly" && !a.daysOfWeek?.length && !a.isBounty) throw new ToolError("Weekly chores need daysOfWeek.");
@@ -349,13 +353,14 @@ export function registerTools(server: McpServer) {
         daysOfWeek: a.daysOfWeek ?? [],
         assignedKidId,
         noCatchUp: a.noCatchUp ?? false,
+        asNeeded: a.asNeeded ?? false,
         isBounty: a.isBounty,
       }));
       return { created: a.title, value: money(Math.round(a.value * 100)) };
     });
 
   define("update_chore",
-    "Change a chore's title, value, assignee, schedule or catch-up rule. Only the fields you pass change. Past completions keep the value they were earned at.",
+    "Change a chore's title, value, assignee, schedule, catch-up rule or as-needed flag. Only the fields you pass change. Past completions keep the value they were earned at.",
     z.object({
       chore: z.string().describe("Chore title or id."),
       title: z.string().min(1).max(200).optional(),
@@ -364,6 +369,7 @@ export function registerTools(server: McpServer) {
       daysOfWeek: dayInput.optional(),
       assignedTo: assignee,
       noCatchUp: z.boolean().optional(),
+      asNeeded: z.boolean().optional(),
     }), WRITE, async (a, parentUserId) => {
       const c = await resolveChore(parentUserId, a.chore);
       const assignedKidId = (await resolveAssignee(parentUserId, a.assignedTo)) ?? (a.assignedTo === undefined ? c.assignedKidId : null);
@@ -378,6 +384,7 @@ export function registerTools(server: McpServer) {
         daysOfWeek,
         assignedKidId,
         noCatchUp: a.noCatchUp ?? !c.allowCatchUp,
+        asNeeded: a.asNeeded ?? c.asNeeded,
       }));
       if (!result.ok) throw new ToolError(result.error);
       return { updated: a.title ?? c.title };
