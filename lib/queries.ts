@@ -188,6 +188,7 @@ export async function getPendingCompletions(parentUserId: string) {
     .select({
       id: completions.id,
       completedAt: completions.completedAt,
+      occurrenceDate: completions.occurrenceDate,
       choreTitle: chores.title,
       valueCents: completions.valueCents,
       isBounty: chores.isBounty,
@@ -463,6 +464,7 @@ export async function getKidCompletions(kidId: string) {
       id: completions.id,
       status: completions.status,
       completedAt: completions.completedAt,
+      occurrenceDate: completions.occurrenceDate,
       choreTitle: chores.title,
       valueCents: completions.valueCents,
       isBounty: chores.isBounty,

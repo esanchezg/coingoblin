@@ -142,6 +142,27 @@ export function isCatchUpOccurrence(
   return occurrenceDate !== todayIso(timezone, now);
 }
 
+// Full date label for a slot, e.g. "Wed, Oct 21". Used where a claim may sit
+// past the current week (approvals), so a bare weekday would be ambiguous.
+// null for the one-time sentinel, like occurrenceDayLabel.
+export function occurrenceDateLabel(occurrenceDate: string): string | null {
+  if (occurrenceDate === ONCE_OCCURRENCE_DATE) return null;
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: "UTC",
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  }).format(new Date(`${occurrenceDate}T00:00:00Z`));
+}
+
+// True when a claim was made on a later day than the slot it is for — i.e. a
+// catch-up claim, judged at claim time rather than now, so it stays flagged
+// while it waits for review.
+export function isLateClaim(occurrenceDate: string, claimedAt: Date, timezone: string): boolean {
+  if (occurrenceDate === ONCE_OCCURRENCE_DATE) return false;
+  return occurrenceDate < todayIso(timezone, claimedAt);
+}
+
 export function parseDaysOfWeek(value: string | null): number[] {
   return (value ?? "")
     .split(",")
