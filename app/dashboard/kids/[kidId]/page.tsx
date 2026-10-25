@@ -12,6 +12,7 @@ import {
   getHouseholdTimezone,
   getTakenChoresForKid,
 } from "@/lib/queries";
+import DoneThisWeek from "@/app/kid/done-this-week";
 
 // Read-only view so a parent can check what a kid sees without logging out
 // of their own account. Claiming/completing chores is still done by the kid,
@@ -34,7 +35,7 @@ export default async function KidDashboardPreview({
     getAvailableChoresForKid(kid.id, householdId),
     getAvailableBountiesForKid(kid.id, householdId),
     getTakenChoresForKid(kid.id, householdId),
-    getKidCompletions(kid.id),
+    getKidCompletions(kid.id, 100),
     getEarnersWithBalances(householdId),
     getHouseholdTimezone(householdId),
   ]);
@@ -44,8 +45,6 @@ export default async function KidDashboardPreview({
   const asNeeded = today.filter((s) => s.chore.asNeeded);
   const catchUp = available.filter((s) => isCatchUpOccurrence(s.occurrenceDate, timezone));
 
-  const pending = completions.filter((c) => c.status === "pending");
-  const completedBounties = completions.filter((c) => c.isBounty && c.status === "approved");
   const balance = leaderboard.find((k) => k.id === kid.id)?.balanceCents ?? 0;
 
   return (
@@ -166,68 +165,7 @@ export default async function KidDashboardPreview({
         </section>
       )}
 
-      {taken.length > 0 && (
-        <section>
-          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-            Already done this week
-          </h2>
-          <ul className="flex flex-col gap-2">
-            {taken.map(({ chore, occurrenceDate, claim }) => (
-              <li
-                key={`${chore.id}:${occurrenceDate}`}
-                className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400"
-              >
-                <span className="flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: claim.earnerColor }} />
-                  {occurrenceDayLabel(occurrenceDate, timezone)} · {chore.title} —{" "}
-                  {claim.status === "approved"
-                    ? `done by ${claim.earnerIsParent ? `${claim.earnerName} (Parent)` : claim.earnerName}`
-                    : `claimed by ${claim.earnerName} · awaiting approval`}
-                </span>
-                <span className="font-medium">{formatCents(chore.valueCents)}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {pending.length > 0 && (
-        <section>
-          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-            Waiting for approval
-          </h2>
-          <ul className="flex flex-col gap-2">
-            {pending.map((c) => (
-              <li
-                key={c.id}
-                className="flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm dark:border-amber-900 dark:bg-amber-950"
-              >
-                <span>{c.choreTitle}</span>
-                <span className="text-amber-700 dark:text-amber-400">{formatCents(c.valueCents)}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {completedBounties.length > 0 && (
-        <section>
-          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-            Bounties crushed
-          </h2>
-          <ul className="flex flex-col gap-2">
-            {completedBounties.map((c) => (
-              <li
-                key={c.id}
-                className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400"
-              >
-                <span>🎯 {c.choreTitle}</span>
-                <span className="font-medium text-slate-700 dark:text-slate-300">{formatCents(c.valueCents)}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+      <DoneThisWeek title={`${kid.name}'s chores this week`} completions={completions} taken={taken} timezone={timezone} />
     </div>
   );
 }

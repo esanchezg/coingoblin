@@ -10,6 +10,7 @@ import {
   getHouseholdTimezone,
   getTakenChoresForKid,
 } from "@/lib/queries";
+import DoneThisWeek from "./done-this-week";
 
 export default async function KidHome() {
   const session = await getKidSession();
@@ -19,7 +20,7 @@ export default async function KidHome() {
     getAvailableChoresForKid(session.kid.id, session.parentUserId),
     getAvailableBountiesForKid(session.kid.id, session.parentUserId),
     getTakenChoresForKid(session.kid.id, session.parentUserId),
-    getKidCompletions(session.kid.id),
+    getKidCompletions(session.kid.id, 100),
     getEarnersWithBalances(session.parentUserId),
     getHouseholdTimezone(session.parentUserId),
   ]);
@@ -29,8 +30,6 @@ export default async function KidHome() {
   const asNeeded = today.filter((s) => s.chore.asNeeded);
   const catchUp = available.filter((s) => isCatchUpOccurrence(s.occurrenceDate, timezone));
 
-  const pending = myCompletions.filter((c) => c.status === "pending");
-  const completedBounties = myCompletions.filter((c) => c.isBounty && c.status === "approved");
   const myBalance = leaderboard.find((k) => k.id === session.kid.id)?.balanceCents ?? 0;
 
   return (
@@ -196,71 +195,7 @@ export default async function KidHome() {
         </section>
       )}
 
-      {taken.length > 0 && (
-        <section>
-          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-            Already done this week
-          </h2>
-          <ul className="flex flex-col gap-2">
-            {taken.map(({ chore, occurrenceDate, claim }) => (
-              <li
-                key={`${chore.id}:${occurrenceDate}`}
-                className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400"
-              >
-                <span className="flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: claim.earnerColor }} />
-                  {occurrenceDayLabel(occurrenceDate, timezone)} · {chore.title} —{" "}
-                  {claim.status === "approved"
-                    ? `done by ${claim.earnerIsParent ? `${claim.earnerName} (Parent)` : claim.earnerName}`
-                    : `claimed by ${claim.earnerName} · awaiting approval`}
-                </span>
-                <span className="font-medium">{formatCents(chore.valueCents)}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {pending.length > 0 && (
-        <section>
-          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-            Waiting for approval
-          </h2>
-          <ul className="flex flex-col gap-2">
-            {pending.map((c) => (
-              <li
-                key={c.id}
-                className="flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm dark:border-amber-900 dark:bg-amber-950"
-              >
-                <span>
-                  {occurrenceDayLabel(c.occurrenceDate, timezone) && `${occurrenceDayLabel(c.occurrenceDate, timezone)} · `}
-                  {c.choreTitle}
-                </span>
-                <span className="text-amber-700 dark:text-amber-400">{formatCents(c.valueCents)}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {completedBounties.length > 0 && (
-        <section>
-          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-            Bounties you&apos;ve crushed
-          </h2>
-          <ul className="flex flex-col gap-2">
-            {completedBounties.map((c) => (
-              <li
-                key={c.id}
-                className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400"
-              >
-                <span>🎯 {c.choreTitle}</span>
-                <span className="font-medium text-slate-700 dark:text-slate-300">{formatCents(c.valueCents)}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+      <DoneThisWeek title="My chores this week" completions={myCompletions} taken={taken} timezone={timezone} />
 
       <section>
         <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">

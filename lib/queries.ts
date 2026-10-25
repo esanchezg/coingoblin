@@ -457,7 +457,7 @@ export async function getChoreOccurrencesForParent(parentUserId: string) {
   }));
 }
 
-export async function getKidCompletions(kidId: string) {
+export async function getKidCompletions(kidId: string, limit = 20) {
   const db = getDb();
   return db
     .select({
@@ -473,5 +473,5 @@ export async function getKidCompletions(kidId: string) {
     .innerJoin(chores, eq(completions.choreId, chores.id))
     .where(eq(completions.kidId, kidId))
     .orderBy(desc(completions.completedAt))
-    .limit(20);
+    .limit(limit);
 }
