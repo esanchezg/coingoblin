@@ -24,7 +24,9 @@ export default async function KidHome() {
     getHouseholdTimezone(session.parentUserId),
   ]);
 
-  const dueToday = available.filter((s) => !isCatchUpOccurrence(s.occurrenceDate, timezone));
+  const today = available.filter((s) => !isCatchUpOccurrence(s.occurrenceDate, timezone));
+  const dueToday = today.filter((s) => !s.chore.asNeeded);
+  const asNeeded = today.filter((s) => s.chore.asNeeded);
   const catchUp = available.filter((s) => isCatchUpOccurrence(s.occurrenceDate, timezone));
 
   const pending = myCompletions.filter((c) => c.status === "pending");
@@ -149,6 +151,41 @@ export default async function KidHome() {
                   <button
                     type="submit"
                     className="rounded-xl bg-sky-600 px-4 py-2 font-semibold text-white dark:bg-sky-700"
+                  >
+                    Done!
+                  </button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {asNeeded.length > 0 && (
+        <section className="rounded-2xl border border-teal-300 bg-teal-50 p-4 dark:border-teal-800 dark:bg-teal-950">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-teal-800 dark:text-teal-300">
+            🧺 As needed
+          </h2>
+          <p className="mb-2 text-xs text-teal-700 dark:text-teal-400">Only when it needs doing. Not required.</p>
+          <ul className="flex flex-col gap-2">
+            {asNeeded.map(({ chore, occurrenceDate }) => (
+              <li
+                key={`${chore.id}:${occurrenceDate}`}
+                className="flex items-center justify-between rounded-2xl border border-teal-200 bg-white p-4 dark:border-teal-900 dark:bg-slate-900"
+              >
+                <div>
+                  <p className="font-medium">{chore.title}</p>
+                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{formatCents(chore.valueCents)}</p>
+                </div>
+                <form
+                  action={async () => {
+                    "use server";
+                    await completeChore(chore.id, occurrenceDate);
+                  }}
+                >
+                  <button
+                    type="submit"
+                    className="rounded-xl bg-teal-600 px-4 py-2 font-semibold text-white dark:bg-teal-700"
                   >
                     Done!
                   </button>

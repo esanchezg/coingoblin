@@ -183,7 +183,11 @@ export default async function ChoresPage() {
                       <p className="text-sm text-slate-500 dark:text-slate-400">
                         {formatCents(chore.valueCents)} · {scheduleLabel(chore)} ·{" "}
                         {chore.assignedKidId ? kidNameById.get(chore.assignedKidId) ?? "unknown kid" : "anyone"}
-                        {!chore.allowCatchUp && (
+                        {chore.asNeeded ? (
+                          <span className="ml-2 rounded-full bg-teal-100 px-2 py-0.5 text-xs font-semibold text-teal-700 dark:bg-teal-950 dark:text-teal-400">
+                            As needed
+                          </span>
+                        ) : !chore.allowCatchUp && (
                           <span className="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700 dark:bg-red-950 dark:text-red-400">
                             No catch-up
                           </span>
@@ -223,7 +227,7 @@ export default async function ChoresPage() {
                       <ul className="mt-2 flex flex-col gap-1.5">
                         {slots.map(({ occurrenceDate, claim }) => {
                           const dayLabel = occurrenceDayLabel(occurrenceDate, timezone);
-                          const loggable = chore.allowCatchUp || occurrenceDate === todayIso(timezone);
+                          const loggable = (chore.allowCatchUp && !chore.asNeeded) || occurrenceDate === todayIso(timezone);
                           return (
                             <li key={occurrenceDate}>
                               {claim ? (
@@ -312,6 +316,10 @@ export default async function ChoresPage() {
           <label className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-400">
             <input type="checkbox" name="noCatchUp" value="1" className="mt-0.5" />
             <span>No catch-up — must be done same day, or it&apos;s gone</span>
+          </label>
+          <label className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-400">
+            <input type="checkbox" name="asNeeded" value="1" className="mt-0.5" />
+            <span>As needed — optional, only when needed (e.g. trash is full)</span>
           </label>
           <select
             name="assignedKidId"

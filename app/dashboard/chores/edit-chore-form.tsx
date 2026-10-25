@@ -13,6 +13,7 @@ type EditableChore = {
   daysOfWeek: string | null;
   assignedKidId: string | null;
   allowCatchUp: boolean;
+  asNeeded: boolean;
 };
 
 export default function EditChoreForm({
@@ -106,6 +107,16 @@ export default function EditChoreForm({
                 className="mt-0.5"
               />
               <span>No catch-up — must be done same day, or it&apos;s gone</span>
+            </label>
+            <label className="flex items-start gap-2 text-sm">
+              <input
+                type="checkbox"
+                name="asNeeded"
+                value="1"
+                defaultChecked={chore.asNeeded}
+                className="mt-0.5"
+              />
+              <span>As needed — optional, only when needed (e.g. trash is full)</span>
             </label>
           </>
         )}

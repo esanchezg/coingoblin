@@ -106,14 +106,15 @@ export function weekOccurrenceDates(
 // missed day normally stays in this set for the rest of the week and drops out
 // once Monday arrives — except for chores with allowCatchUp: false, which skip
 // the makeup window entirely: only today's slot (if scheduled) is ever
-// claimable, and a missed day is gone for good once the day ends.
+// claimable, and a missed day is gone for good once the day ends. As-needed
+// chores behave the same way: a skipped day was never "missed".
 export function claimableOccurrenceDates(
-  chore: Pick<Chore, "recurrence" | "daysOfWeek"> & { allowCatchUp?: boolean },
+  chore: Pick<Chore, "recurrence" | "daysOfWeek"> & { allowCatchUp?: boolean; asNeeded?: boolean },
   timezone: string,
   now: Date = new Date(),
 ): string[] {
   const dates = weekOccurrenceDates(chore, timezone, now);
-  if (chore.recurrence === "once" || chore.allowCatchUp !== false) return dates;
+  if (chore.recurrence === "once" || (chore.allowCatchUp !== false && chore.asNeeded !== true)) return dates;
   const today = todayIso(timezone, now);
   return dates.filter((d) => d === today);
 }
