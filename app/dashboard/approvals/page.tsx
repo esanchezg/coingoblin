@@ -1,5 +1,6 @@
 import { currentParent } from "@/lib/current-parent";
 import { approveCompletion, rejectCompletion } from "@/lib/actions/parent";
+import { isLateClaim, occurrenceDateLabel } from "@/lib/chore-schedule";
 import { formatDateTimeInZone } from "@/lib/date";
 import { formatCents } from "@/lib/money";
 import { getHouseholdTimezone, getPendingCompletions } from "@/lib/queries";
@@ -37,10 +38,20 @@ export default async function ApprovalsPage() {
                         🎯 Bounty
                       </span>
                     )}
+                    {isLateClaim(item.occurrenceDate, item.completedAt, timezone) && (
+                      <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-700 dark:bg-sky-900 dark:text-sky-300">
+                        ⏰ Late
+                      </span>
+                    )}
                   </p>
                   <p className="text-sm text-slate-500 dark:text-slate-400">
                     {item.kidName} · {formatCents(item.valueCents)}
                   </p>
+                  {occurrenceDateLabel(item.occurrenceDate) && (
+                    <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                      For {occurrenceDateLabel(item.occurrenceDate)}
+                    </p>
+                  )}
                   <p className="text-xs text-slate-400 dark:text-slate-500">
                     Claimed {formatDateTimeInZone(item.completedAt, timezone)}
                   </p>

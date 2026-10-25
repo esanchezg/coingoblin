@@ -12,7 +12,7 @@ import {
   setChoreActive,
   updateChore,
 } from "@/lib/actions/parent";
-import { occurrenceDateFor } from "@/lib/chore-schedule";
+import { isLateClaim, occurrenceDateFor, occurrenceDateLabel } from "@/lib/chore-schedule";
 import { runAsParent } from "@/lib/mcp-context";
 import { resolveParent } from "@/lib/mcp/auth";
 import { formatCents } from "@/lib/money";
@@ -148,6 +148,8 @@ export function registerTools(server: McpServer) {
         chore: p.choreTitle,
         isBounty: p.isBounty,
         value: money(p.valueCents),
+        forDate: occurrenceDateLabel(p.occurrenceDate),
+        late: isLateClaim(p.occurrenceDate, p.completedAt, timezone),
         claimedAt: p.completedAt.toLocaleString("en-US", { timeZone: timezone }),
       }));
     });

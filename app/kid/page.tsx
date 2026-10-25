@@ -195,7 +195,10 @@ export default async function KidHome() {
                 key={c.id}
                 className="flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm dark:border-amber-900 dark:bg-amber-950"
               >
-                <span>{c.choreTitle}</span>
+                <span>
+                  {occurrenceDayLabel(c.occurrenceDate, timezone) && `${occurrenceDayLabel(c.occurrenceDate, timezone)} · `}
+                  {c.choreTitle}
+                </span>
                 <span className="text-amber-700 dark:text-amber-400">{formatCents(c.valueCents)}</span>
               </li>
             ))}
