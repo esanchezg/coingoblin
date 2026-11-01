@@ -1,5 +1,12 @@
 import { currentParent } from "@/lib/current-parent";
-import { createChore, deleteChore, logCompletionFor, setChoreActive } from "@/lib/actions/parent";
+import {
+  createChore,
+  deleteChore,
+  logCompletionFor,
+  reassignCompletion,
+  setChoreActive,
+  undoCompletion,
+} from "@/lib/actions/parent";
 import { formatCents } from "@/lib/money";
 import {
   getBountiesForParent,
@@ -231,11 +238,46 @@ export default async function ChoresPage() {
                           return (
                             <li key={occurrenceDate}>
                               {claim ? (
-                                <p className="rounded-xl bg-emerald-50 px-3 py-1.5 text-sm text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">
-                                  ✓ {dayLabel ? `${dayLabel} — ` : ""}
-                                  {claim.earnerName}
-                                  {claim.status === "pending" ? " · awaiting approval" : ""}
-                                </p>
+                                <details className="group rounded-xl bg-emerald-50 text-sm text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">
+                                  <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-1.5">
+                                    <span>
+                                      ✓ {dayLabel ? `${dayLabel} — ` : ""}
+                                      {claim.earnerName}
+                                      {claim.status === "pending" ? " · awaiting approval" : ""}
+                                    </span>
+                                    <span className="text-xs text-emerald-600/70 group-open:hidden dark:text-emerald-400/70">
+                                      Change
+                                    </span>
+                                  </summary>
+                                  <div className="flex flex-col gap-2 px-3 pb-2">
+                                    <form action={reassignCompletion} className="flex items-center gap-2">
+                                      <input type="hidden" name="completionId" value={claim.completionId} />
+                                      <select
+                                        name="earnerId"
+                                        defaultValue={claim.earnerId}
+                                        className="flex-1 rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                                      >
+                                        {earners.map((e) => (
+                                          <option key={e.id} value={e.id}>
+                                            {e.id === parent.earnerId ? `Me (${e.name})` : e.name}
+                                          </option>
+                                        ))}
+                                      </select>
+                                      <button
+                                        type="submit"
+                                        className="rounded-xl bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white dark:bg-indigo-700"
+                                      >
+                                        Save
+                                      </button>
+                                    </form>
+                                    <form action={undoCompletion}>
+                                      <input type="hidden" name="completionId" value={claim.completionId} />
+                                      <button type="submit" className="text-sm text-red-500 dark:text-red-400">
+                                        Undo — nobody did it
+                                      </button>
+                                    </form>
+                                  </div>
+                                </details>
                               ) : (
                                 <form action={logCompletionFor} className="flex items-center gap-2">
                                   <input type="hidden" name="choreId" value={chore.id} />

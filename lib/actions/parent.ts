@@ -317,6 +317,52 @@ export async function logCompletionFor(formData: FormData) {
   revalidatePath("/dashboard/payouts");
 }
 
+// Loads a completion only if its chore belongs to this household.
+async function findOwnCompletion(parentUserId: string, completionId: string) {
+  const [row] = await getDb()
+    .select({ id: completions.id })
+    .from(completions)
+    .innerJoin(chores, eq(completions.choreId, chores.id))
+    .where(and(eq(completions.id, completionId), eq(chores.parentUserId, parentUserId)))
+    .limit(1);
+  if (!row) throw new Error("Not found");
+  return row;
+}
+
+function revalidateCompletionViews() {
+  revalidatePath("/dashboard/chores");
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/approvals");
+  revalidatePath("/dashboard/payouts");
+}
+
+// Fixes a mis-credited day: moves the completion (and the value locked into it)
+// to another earner. Status and value are left as they were.
+export async function reassignCompletion(formData: FormData) {
+  const parentUserId = await requireParentUserId();
+  const completionId = String(formData.get("completionId") ?? "");
+  const earnerId = String(formData.get("earnerId") ?? "");
+  await findOwnCompletion(parentUserId, completionId);
+  if (!earnerId) throw new Error("Not found");
+  await assertOwnEarner(parentUserId, earnerId);
+
+  await getDb()
+    .update(completions)
+    .set({ kidId: earnerId })
+    .where(eq(completions.id, completionId));
+  revalidateCompletionViews();
+}
+
+// Removes a logged completion entirely, freeing the day to be logged again.
+export async function undoCompletion(formData: FormData) {
+  const parentUserId = await requireParentUserId();
+  const completionId = String(formData.get("completionId") ?? "");
+  await findOwnCompletion(parentUserId, completionId);
+
+  await getDb().delete(completions).where(eq(completions.id, completionId));
+  revalidateCompletionViews();
+}
+
 // Records the parent's browser timezone the first time it's seen. Only ever fills
 // a null — never clobbers an existing value, whether set here or by hand.
 export async function setHouseholdTimezoneIfUnset(timezone: string) {
